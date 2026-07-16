@@ -3,8 +3,17 @@ using RosMessageTypes.Std;
 using Unity.Robotics.ROSTCPConnector;
 using UnityEngine;
 
+// Sits on the robot alongside TrackController/GripperController and continuously
+// mirrors whatever the simulation is doing - WASD or AI driven - to the real
+// robot over ROS. It reads state, it is never told what to send.
+[RequireComponent(typeof(TrackController))]
 public sealed class ROSBridge : MonoBehaviour
 {
+    [Header("Mirrored subsystems")]
+    [SerializeField] private TrackController trackController;
+    [SerializeField] private GripperController gripperController;
+    [SerializeField] private Transform cameraPivot;
+
     [Header("Topics")]
     [SerializeField] private string cmdVelTopic = "/cmd_vel";
     [SerializeField] private string cmdGripperTopic = "/cmd_gripper";
@@ -17,6 +26,7 @@ public sealed class ROSBridge : MonoBehaviour
     [Header("Smoothing")]
     [Range(0.1f, 1f)]
     [SerializeField] private float emaAlpha = 0.8f;
+    [SerializeField] private float publishRate = 20f; // Hz, matches typical /cmd_vel teleop rates
 
     [Header("Watchdog / Fail-safe")]
     [SerializeField] private float watchdogTimeout = 0.5f;
@@ -24,8 +34,18 @@ public sealed class ROSBridge : MonoBehaviour
     private ROSConnection ros;
     private float smoothGas;
     private float smoothSteering;
-    private float lastCommandTime;
+    private float lastPublishTime;
+    private float lastLiveCommandTime;
     private bool watchdogTripped;
+    private bool lastHasBall;
+    private float lastCameraYaw;
+
+    private void Awake()
+    {
+        trackController ??= GetComponent<TrackController>();
+        gripperController ??= GetComponent<GripperController>();
+        cameraPivot ??= transform.Find("CameraPivot");
+    }
 
     private void Start()
     {
@@ -34,29 +54,46 @@ public sealed class ROSBridge : MonoBehaviour
         ros.RegisterPublisher<Int32Msg>(cmdGripperTopic);
         ros.RegisterPublisher<Float32Msg>(cmdCameraPanTopic);
 
-        lastCommandTime = Time.time;
+        lastPublishTime = Time.time;
+        lastLiveCommandTime = Time.time;
+        lastHasBall = gripperController != null && gripperController.HasBall;
+        lastCameraYaw = CurrentCameraYaw();
     }
 
     private void Update()
     {
-        // If the AI/heuristic layer stops calling PublishCommand (frozen state,
-        // dropped Wi-Fi, disabled behaviour) the last velocity would otherwise keep
-        // executing forever on the Raspberry Pi. Force a stop once the deadline passes.
-        if (!watchdogTripped && Time.time - lastCommandTime > watchdogTimeout)
+        MirrorGripper();
+        MirrorCamera();
+
+        if (Time.time - lastPublishTime >= 1f / Mathf.Max(1f, publishRate))
+        {
+            lastPublishTime = Time.time;
+            MirrorDrive();
+        }
+
+        // If the simulated robot is genuinely idle nothing above marks fresh
+        // activity, so once the deadline passes force an explicit emergency stop
+        // instead of trusting whatever velocity was last on the wire.
+        if (!watchdogTripped && Time.time - lastLiveCommandTime > watchdogTimeout)
         {
             watchdogTripped = true;
             SendStop();
-            Debug.LogWarning($"[ROSBridge] Watchdog triggered: no command for {watchdogTimeout:0.00}s. " +
+            Debug.LogWarning($"[ROSBridge] Watchdog triggered: no live command for {watchdogTimeout:0.00}s. " +
                               "Sent emergency stop to the robot.");
         }
     }
 
-    public void PublishCommand(float gas, float steering)
+    private void MirrorDrive()
     {
-        lastCommandTime = Time.time;
-        watchdogTripped = false;
+        if (trackController == null)
+        {
+            return;
+        }
 
-        if (Mathf.Approximately(gas, 0f) && Mathf.Approximately(steering, 0f))
+        float gas = trackController.GasCommand;
+        float steer = trackController.SteerCommand;
+
+        if (Mathf.Approximately(gas, 0f) && Mathf.Approximately(steer, 0f))
         {
             // A deliberate zero command must land immediately, not decay through the
             // filter, otherwise leftover EMA momentum drifts the robot after a stop.
@@ -66,20 +103,58 @@ public sealed class ROSBridge : MonoBehaviour
         else
         {
             smoothGas = emaAlpha * gas + (1f - emaAlpha) * smoothGas;
-            smoothSteering = emaAlpha * steering + (1f - emaAlpha) * smoothSteering;
+            smoothSteering = emaAlpha * steer + (1f - emaAlpha) * smoothSteering;
+            lastLiveCommandTime = Time.time;
+            watchdogTripped = false;
         }
 
         SendTwist(smoothGas * maxLinearSpeed, smoothSteering * maxAngularSpeed);
     }
 
-    public void PublishGripperCmd(int cmd)
+    private void MirrorGripper()
     {
-        ros.Publish(cmdGripperTopic, new Int32Msg(cmd));
+        if (gripperController == null)
+        {
+            return;
+        }
+
+        bool hasBall = gripperController.HasBall;
+        if (hasBall == lastHasBall)
+        {
+            return;
+        }
+
+        lastHasBall = hasBall;
+        lastLiveCommandTime = Time.time;
+        watchdogTripped = false;
+        ros.Publish(cmdGripperTopic, new Int32Msg(hasBall ? 1 : 2));
     }
 
-    public void PublishCameraCmd(float yaw)
+    private void MirrorCamera()
     {
+        if (cameraPivot == null)
+        {
+            return;
+        }
+
+        float yaw = CurrentCameraYaw();
+        if (Mathf.Approximately(yaw, lastCameraYaw))
+        {
+            return;
+        }
+
+        lastCameraYaw = yaw;
+        lastLiveCommandTime = Time.time;
+        watchdogTripped = false;
         ros.Publish(cmdCameraPanTopic, new Float32Msg(yaw));
+    }
+
+    private float CurrentCameraYaw()
+    {
+        // CameraPivot resets to identity every episode and only rotates around the
+        // robot's up axis (see RobotBrain.UpdateCameraServo), so the wrapped local Y
+        // euler angle is exactly the accumulated servo angle in degrees.
+        return Mathf.DeltaAngle(0f, cameraPivot.localEulerAngles.y);
     }
 
     private void SendStop()
