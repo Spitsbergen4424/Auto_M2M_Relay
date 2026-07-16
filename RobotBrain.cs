@@ -158,7 +158,7 @@ public sealed class RobotBrain : Agent
         sensor.AddObservation(visible ? yoloCamera.NormalizedDistance : 1f);           // 6
         sensor.AddObservation(yoloCamera != null ? yoloCamera.LastKnownDirection : 0f);// 7
         sensor.AddObservation(visible ? 1f : 0f);                                      // 8
-        sensor.AddObservation(cameraServoLimit > 0f ? cameraYaw / cameraServoLimit : 0f);// 9
+        sensor.AddObservation(0f); // 9 (Отключено для фикса servo, передаем 0, чтобы не менять размерность вектора)
         sensor.AddObservation(gripperController != null && gripperController.HasBall ? 1f : 0f);// 10
         Vector3 relative = transform.position - robotStartPosition;
         sensor.AddObservation(Mathf.Clamp(relative.x / arenaRadius, -1f, 1f));          // 11
@@ -197,47 +197,89 @@ public sealed class RobotBrain : Agent
         float distance = DistanceToBall();
         float distanceDelta = previousDistance - distance;
         float proximityScale = distance < 0.6f ? 2f : 1f;
-        AddReward(distanceDelta * 0.6f * proximityScale);
+        AddReward(distanceDelta * 0.6f * proximityScale); // Оставляем базовую награду за сближение
 
-        Vector2 action = new Vector2(gas, steer);
-        AddReward(-Vector2.Distance(action, previousDriveAction) * 0.0025f);
-        previousDriveAction = action;
-
-        if (yoloCamera != null && yoloCamera.IsVisible)
+        // --- УЛУЧШЕНИЕ 1: Velocity Alignment ---
+        if (targetBall != null)
         {
-            AddReward((1f - Mathf.Abs(yoloCamera.HorizontalOffset)) * 0.0008f);
+            Vector3 toBallDir = (targetBall.position - transform.position).normalized;
+            float velocityTowardsBall = Vector3.Dot(body.linearVelocity, toBallDir);
+            AddReward(velocityTowardsBall * 0.01f);
         }
 
+        // --- УЛУЧШЕНИЕ 3: Action Rate Penalty (штраф за резкость разделен) ---
+        float gasDelta = Mathf.Abs(gas - previousDriveAction.x);
+        float steerDelta = Mathf.Abs(steer - previousDriveAction.y);
+        AddReward(-(gasDelta * 0.001f + steerDelta * 0.003f));
+        previousDriveAction = new Vector2(gas, steer);
+
+        // --- УЛУЧШЕНИЕ 3: Mild Reverse Penalty ---
+        if (gas < 0f)
+        {
+            AddReward(gas * 0.0015f); 
+        }
+
+        // --- УЛУЧШЕНИЕ 1: Награда YOLO за удержание по центру ---
+        if (yoloCamera != null && yoloCamera.IsVisible)
+        {
+            AddReward((1f - Mathf.Abs(yoloCamera.HorizontalOffset)) * 0.01f);
+        }
+
+        // --- УЛУЧШЕНИЕ 1: Исправлена ось направления (с right на forward) ---
         if (targetBall != null)
         {
             Vector3 toBall = Vector3.ProjectOnPlane(targetBall.position - transform.position, Vector3.up);
             if (toBall.sqrMagnitude > 0.0001f)
             {
-                // The FBX nose points along local +X (transform.right).
-                float alignment = Mathf.Clamp01((Vector3.Dot(transform.right, toBall.normalized) + 1f) * 0.5f);
+                float alignment = Mathf.Clamp01((Vector3.Dot(transform.forward, toBall.normalized) + 1f) * 0.5f);
                 AddReward(alignment * 0.0008f);
             }
         }
 
+        // --- УЛУЧШЕНИЕ 3: Wall Proximity (Экспоненциальный барьер) ---
         if (virtualSensors != null)
         {
-            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * 0.002f);
-            if (virtualSensors.UltrasonicNormalized < 0.08f)
+            float minSafeDistance = 0.25f; 
+            if (virtualSensors.UltrasonicNormalized < minSafeDistance)
             {
-                AddReward(-0.003f);
+                float urgency = 1f - (virtualSensors.UltrasonicNormalized / minSafeDistance);
+                float wallPenalty = Mathf.Exp(urgency * 2f) - 1f; 
+                AddReward(-wallPenalty * 0.005f);
+            }
+            // Оставляем слабый штраф за касание боковых ИК, если требуется
+            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * 0.001f); 
+        }
+
+        // --- УЛУЧШЕНИЕ 2: Smooth Brake Zone (непрерывный контроль скорости) ---
+        float currentSpeed = body.linearVelocity.magnitude;
+        float brakeZoneRadius = 1.5f; 
+
+        if (distance < brakeZoneRadius)
+        {
+            float maxSpeed = trackController != null ? trackController.MaxLinearSpeed : 1f;
+            float maxAllowedSpeed = (distance / brakeZoneRadius) * maxSpeed;
+
+            if (currentSpeed > maxAllowedSpeed)
+            {
+                float speedPenalty = currentSpeed - maxAllowedSpeed;
+                AddReward(-speedPenalty * 0.005f); 
             }
         }
 
-        AddReward(-0.0002f);
+        AddReward(-0.0002f); // Time penalty
         previousDistance = distance;
 
+        // Терминальные состояния
         if (gripperController != null && gripperController.HasBall)
         {
-            // Manual play must retain the ball until R is pressed. Training still ends the
-            // episode as soon as the capture succeeds.
             if (!IsManualControl())
             {
-                SetReward(5f);
+                // --- УЛУЧШЕНИЕ 2: Terminal Velocity Penalty ---
+                float baseReward = 5f;
+                float impactSpeed = body.linearVelocity.magnitude;
+                float speedPenalty = Mathf.Clamp(impactSpeed * 1.5f, 0f, 4.5f); 
+
+                SetReward(baseReward - speedPenalty);
                 EndEpisode();
             }
         }
