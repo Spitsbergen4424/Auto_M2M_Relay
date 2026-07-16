@@ -1,0 +1,16 @@
+services:
+  ros1:
+    build:
+      context: .
+      args:
+        ENDPOINT_REF: ${ENDPOINT_REF:-993d366b8900bf9f3d2da444fde64c0379b4dc7c}
+    container_name: gfsx-ros1-endpoint
+    restart: unless-stopped
+    ports:
+      - "${ROS_TCP_PORT:-10000}:10000"
+      - "${ROS_MASTER_PORT:-11311}:11311"
+    environment:
+      ROS_MASTER_URI: http://127.0.0.1:11311
+      ROS_IP: 127.0.0.1
+    stdin_open: true
+    tty: true
