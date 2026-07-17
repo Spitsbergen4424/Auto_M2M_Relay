@@ -13,7 +13,7 @@ public sealed class RobotBrain : Agent
     [SerializeField] private TrackController trackController;
     [SerializeField] private VirtualSensors virtualSensors;
     [SerializeField] private GripperController gripperController;
-    [SerializeField] private SimulatedYoloCamera yoloCamera;
+    [SerializeField] private YoloVisionSource yoloCamera;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
 
@@ -113,7 +113,7 @@ public sealed class RobotBrain : Agent
     }
 
     public void Configure(TrackController tracks, VirtualSensors sensors, GripperController gripper,
-        SimulatedYoloCamera yolo, Transform servoPivot, Transform ball)
+        YoloVisionSource yolo, Transform servoPivot, Transform ball)
     {
         trackController = tracks;
         virtualSensors = sensors;
@@ -121,6 +121,11 @@ public sealed class RobotBrain : Agent
         yoloCamera = yolo;
         cameraPivot = servoPivot;
         targetBall = ball;
+    }
+
+    public void SetVisionSource(YoloVisionSource yolo)
+    {
+        yoloCamera = yolo;
     }
 
     public override void OnEpisodeBegin()
