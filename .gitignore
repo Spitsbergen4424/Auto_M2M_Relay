@@ -1,0 +1,31 @@
+# Unity generated data and local editor state
+[Ll]ibrary/
+[Tt]emp/
+[Ll]ogs/
+[Oo]bj/
+[Uu]serSettings/
+[Mm]emoryCaptures/
+
+# Builds and archives are reproducible artifacts
+[Bb]uild/
+[Bb]uild_*/
+CloudBuild_Linux/
+Backups/
+*.log
+*.zip
+*.7z
+
+# IDE and OS files
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.slnx
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Python runtime files
+__pycache__/
+*.py[cod]

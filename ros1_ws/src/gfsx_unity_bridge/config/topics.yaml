@@ -1,0 +1,13 @@
+real_sensor_packet_topic: /sensor/data
+source_ball_visible_topic: /yolo/ball_visible
+source_ball_horizontal_topic: /yolo/ball_horizontal
+source_ball_distance_topic: /yolo/ball_distance
+
+# unity_master_team1.py already consumes these directly.  Its own 0.5 s
+# watchdog is the physical motor fail-safe.
+default_ball_distance_meters: 2.0
+ultrasonic_scale_to_meters: 1.0
+ball_distance_scale_to_meters: 1.0
+invert_left_ir: false
+invert_right_ir: false
+invert_gripper_ir: false

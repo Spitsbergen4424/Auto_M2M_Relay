@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>gfsx_unity_bridge</name>
+  <version>0.1.0</version>
+  <description>ROS 1 adapter and hardware fail-safe for the GFS-X Unity agent.</description>
+  <maintainer email="spitsbergen4424@users.noreply.github.com">GFS-X Team</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <exec_depend>ros_tcp_endpoint</exec_depend>
+</package>

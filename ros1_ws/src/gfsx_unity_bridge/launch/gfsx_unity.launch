@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="gfsx_unity_bridge"
+        type="gfsx_ros1_adapter.py"
+        name="gfsx_unity_adapter"
+        output="screen"
+        required="true">
+    <rosparam command="load" file="$(find gfsx_unity_bridge)/config/topics.yaml" />
+  </node>
+</launch>
