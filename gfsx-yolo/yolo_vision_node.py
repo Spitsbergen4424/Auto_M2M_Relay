@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import socket
 import sys
 import threading
@@ -14,8 +13,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 import cv2
+import numpy as np
 import yaml
 from ultralytics import YOLO
+from urllib.request import Request, urlopen
 
 
 ROOT = Path(__file__).resolve().parent
@@ -101,6 +102,109 @@ class LatestFrameCapture:
             with self._lock:
                 self._frame = frame
                 self._frame_number += 1
+
+
+class MjpegFrameCapture:
+    """Read a MJPEG HTTP stream directly and keep only the newest decoded frame."""
+
+    _start_marker = b"\xff\xd8"
+    _end_marker = b"\xff\xd9"
+    _max_buffer_bytes = 48 * 1024 * 1024
+    _trim_buffer_bytes = 1024 * 1024
+
+    def __init__(self, source: str, reconnect_seconds: float = 1.0) -> None:
+        self.source = source
+        self.reconnect_seconds = max(0.1, reconnect_seconds)
+        self._lock = threading.Lock()
+        self._frame = None
+        self._frame_number = 0
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._stream = None
+
+    def start(self) -> None:
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._loop, daemon=True, name="GFSX MJPEG capture")
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._running = False
+        stream = self._stream
+        self._stream = None
+        if stream is not None:
+            try:
+                stream.close()
+            except Exception:
+                pass
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+
+    def latest(self, previous_number: int) -> tuple[Optional[Any], int]:
+        with self._lock:
+            if self._frame is None or self._frame_number == previous_number:
+                return None, previous_number
+            return self._frame.copy(), self._frame_number
+
+    def _loop(self) -> None:
+        while self._running:
+            try:
+                self._read_stream()
+            except Exception as error:
+                self._close_stream()
+                if self._running:
+                    print(f"MJPEG reconnecting in {self.reconnect_seconds:.1f}s: {error}")
+                    time.sleep(self.reconnect_seconds)
+
+    def _read_stream(self) -> None:
+        request = Request(self.source, headers={"User-Agent": "Mozilla/5.0"})
+        response = urlopen(request, timeout=10)
+        self._stream = response
+        print(f"MJPEG connected: {self.source}")
+
+        buffer = bytearray()
+        while self._running:
+            chunk = response.read(4096)
+            if not chunk:
+                raise ConnectionError("MJPEG stream ended")
+            buffer.extend(chunk)
+            if len(buffer) > self._max_buffer_bytes:
+                buffer = buffer[-self._trim_buffer_bytes :]
+
+            while True:
+                start = buffer.find(self._start_marker)
+                if start < 0:
+                    if len(buffer) > 1:
+                        del buffer[:-1]
+                    break
+
+                if start > 0:
+                    del buffer[:start]
+
+                end = buffer.find(self._end_marker, 2)
+                if end < 0:
+                    break
+
+                jpeg = bytes(buffer[: end + 2])
+                del buffer[: end + 2]
+                frame = cv2.imdecode(np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
+                if frame is None:
+                    continue
+
+                with self._lock:
+                    self._frame = frame
+                    self._frame_number += 1
+                print("MJPEG frame received")
+
+    def _close_stream(self) -> None:
+        stream = self._stream
+        self._stream = None
+        if stream is not None:
+            try:
+                stream.close()
+            except Exception:
+                pass
 
 
 def normalized_distance(height_ratio: float, far_ratio: float, near_ratio: float) -> float:
@@ -206,7 +310,10 @@ def main() -> int:
     print("Distance contract: 0=near, 1=far. Press Q or Esc to stop.")
 
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    capture = LatestFrameCapture(source, reconnect_seconds)
+    if isinstance(source, str) and source.startswith(("http://", "https://")):
+        capture: Any = MjpegFrameCapture(source, reconnect_seconds)
+    else:
+        capture = LatestFrameCapture(source, reconnect_seconds)
     capture.start()
     last_frame_number = -1
     last_status_time = time.perf_counter()
