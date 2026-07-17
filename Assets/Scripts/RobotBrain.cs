@@ -16,6 +16,7 @@ public sealed class RobotBrain : Agent
     [SerializeField] private SimulatedYoloCamera yoloCamera;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
+    [SerializeField] private DiagnosticLogger diagnosticLogger;
 
     [Header("Episode")]
     [SerializeField] private float arenaRadius = 4.5f;
@@ -95,6 +96,7 @@ public sealed class RobotBrain : Agent
         trackController ??= GetComponent<TrackController>();
         virtualSensors ??= GetComponent<VirtualSensors>();
         gripperController ??= GetComponent<GripperController>();
+        diagnosticLogger ??= GetComponent<DiagnosticLogger>();
         obstacleRandomizer = GetComponentInParent<ArenaObstacleRandomizer>();
         if (targetBall != null)
         {
@@ -246,6 +248,52 @@ public sealed class RobotBrain : Agent
         }
 
         CalculateRewards(gas, steer);
+        LogDiagnosticStep(gas, steer);
+    }
+
+    private void LogDiagnosticStep(float gas, float steer)
+    {
+        if (diagnosticLogger == null)
+        {
+            return;
+        }
+
+        bool ballSeen = yoloCamera != null && yoloCamera.IsVisible;
+        float ballAngle = ballSeen ? yoloCamera.HorizontalOffset : 0f;
+        float ballDistance = ballSeen ? yoloCamera.NormalizedDistance : 1f;
+
+        float ultrasonic = virtualSensors != null ? virtualSensors.UltrasonicNormalized : 1f;
+        float leftIr = virtualSensors != null ? virtualSensors.LeftIR : 0f;
+        float rightIr = virtualSensors != null ? virtualSensors.RightIR : 0f;
+        float gripperIr = virtualSensors != null ? virtualSensors.GripperIR : 0f;
+
+        bool hasBall = gripperController != null && gripperController.HasBall;
+        Vector3 displacement = transform.position - robotStartPosition;
+        float heading = Mathf.Repeat(transform.eulerAngles.y, 360f) / 360f;
+        float speed = body != null ? body.linearVelocity.magnitude : 0f;
+
+        const int holdTicks = 0;
+        const bool isRetrying = false;
+
+        diagnosticLogger.LogStep(
+            StepCount,
+            ballSeen,
+            ballAngle,
+            ballDistance,
+            ultrasonic,
+            leftIr,
+            rightIr,
+            gripperIr,
+            cameraYaw,
+            gas,
+            steer,
+            hasBall,
+            holdTicks,
+            isRetrying,
+            displacement.x,
+            displacement.z,
+            heading,
+            speed);
     }
 
     private bool IsManualControl()
