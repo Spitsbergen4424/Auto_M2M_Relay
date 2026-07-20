@@ -431,9 +431,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
             safetyStopped = true;
         }
 
-        float publishYaw = robotBrain != null
-            ? robotBrain.NormalizedCameraYaw
-            : Mathf.Clamp(lastPpoContinuousActions.z, -1f, 1f);
+        float publishYaw = robotBrain != null ? robotBrain.NormalizedCameraYaw : 0f;
         PublishTwist(linearX, angularZ);
         PublishCameraPan(publishYaw);
 

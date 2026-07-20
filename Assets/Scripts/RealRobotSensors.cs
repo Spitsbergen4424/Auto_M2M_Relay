@@ -68,7 +68,6 @@ public sealed class RealRobotSensors : MonoBehaviour, IRobotSensorSource
     {
         gripperIr = gripperIrValue >= 1 ? 1f : 0f;
         lastGripperIrPacketTime = Time.unscaledTime;
-        MarkPacketReceived();
     }
 
     public void ApplyTrackPwm(float leftPwm, float rightPwm)
@@ -76,7 +75,6 @@ public sealed class RealRobotSensors : MonoBehaviour, IRobotSensorSource
         leftTrackPwm = leftPwm;
         rightTrackPwm = rightPwm;
         lastPwmPacketTime = Time.unscaledTime;
-        MarkPacketReceived();
     }
 
     public void MarkPacketReceived()
