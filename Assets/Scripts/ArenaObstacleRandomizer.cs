@@ -18,10 +18,85 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
 
     private readonly List<Transform> obstacles = new List<Transform>();
     private int generation;
+    private Vector3 detourCenterLocal;
+    private Vector3 detourDirectionLocal;
+    private Vector3 detourLeftEntryLocal;
+    private Vector3 detourLeftExitLocal;
+    private Vector3 detourRightEntryLocal;
+    private Vector3 detourRightExitLocal;
+    private float detourHalfDepth;
+    private float detourSideClearance;
 
     public float CurrentDifficulty { get; private set; } = 1f;
     public bool RequiresDetour => CurrentDifficulty >= 0.55f && randomSeed % 2 == 0;
     public bool HasDetourLayout { get; private set; }
+
+    public bool TryGetDetourPathPotential(Vector3 worldPosition, out float potential)
+    {
+        potential = 0f;
+        if (!HasDetourLayout || arena == null || targetBall == null)
+        {
+            return false;
+        }
+
+        Vector3 current = arena.InverseTransformPoint(worldPosition);
+        Vector3 goal = arena.InverseTransformPoint(targetBall.position);
+        current.y = 0f;
+        goal.y = 0f;
+        float longitudinal = Vector3.Dot(current - detourCenterLocal, detourDirectionLocal);
+
+        if (longitudinal < -detourHalfDepth)
+        {
+            float left = HorizontalDistance(current, detourLeftEntryLocal) +
+                         HorizontalDistance(detourLeftEntryLocal, detourLeftExitLocal) +
+                         HorizontalDistance(detourLeftExitLocal, goal);
+            float right = HorizontalDistance(current, detourRightEntryLocal) +
+                          HorizontalDistance(detourRightEntryLocal, detourRightExitLocal) +
+                          HorizontalDistance(detourRightExitLocal, goal);
+            potential = Mathf.Min(left, right);
+        }
+        else if (longitudinal <= detourHalfDepth)
+        {
+            potential = Mathf.Min(
+                HorizontalDistance(current, detourLeftExitLocal) + HorizontalDistance(detourLeftExitLocal, goal),
+                HorizontalDistance(current, detourRightExitLocal) + HorizontalDistance(detourRightExitLocal, goal));
+        }
+        else
+        {
+            potential = HorizontalDistance(current, goal);
+        }
+
+        return true;
+    }
+
+    public bool TryGetDetourStage(Vector3 worldPosition, out int stage)
+    {
+        stage = 0;
+        if (!HasDetourLayout || arena == null)
+        {
+            return false;
+        }
+
+        Vector3 current = arena.InverseTransformPoint(worldPosition);
+        current.y = 0f;
+        Vector3 fromCenter = current - detourCenterLocal;
+        float longitudinal = Vector3.Dot(fromCenter, detourDirectionLocal);
+        Vector3 perpendicular = new Vector3(-detourDirectionLocal.z, 0f, detourDirectionLocal.x);
+        float lateral = Mathf.Abs(Vector3.Dot(fromCenter, perpendicular));
+
+        // Stage 1 means that the robot has reached a navigable wall edge.
+        // Stage 2 means that it has actually passed the occluding barrier.
+        if (lateral >= detourSideClearance - 0.25f)
+        {
+            stage = 1;
+            if (longitudinal >= detourHalfDepth)
+            {
+                stage = 2;
+            }
+        }
+
+        return true;
+    }
 
     public void Configure(Transform arenaTransform, Transform robotTransform, Transform ballTransform, int seed)
     {
@@ -61,8 +136,12 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         Vector3 robotLocal = robot != null ? arena.InverseTransformPoint(robot.position) : Vector3.zero;
         Vector3 ballLocal = targetBall != null ? arena.InverseTransformPoint(targetBall.position) : new Vector3(0f, 0f, 2f);
         float floorTop = FindFloorTop();
-        bool createDetour = CurrentDifficulty >= 0.55f &&
-                            random.NextDouble() < Mathf.Lerp(0.15f, 0.55f, CurrentDifficulty);
+        float detourProbability = Academy.Instance.EnvironmentParameters.GetWithDefault(
+            "detour_probability", -1f);
+        bool createDetour = detourProbability >= 0f
+            ? random.NextDouble() < Mathf.Clamp01(detourProbability)
+            : CurrentDifficulty >= 0.55f &&
+              random.NextDouble() < Mathf.Lerp(0.15f, 0.55f, CurrentDifficulty);
         if (createDetour)
         {
             count = Mathf.Max(1, count);
@@ -218,27 +297,27 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
     {
         if (!createDetour || obstacles.Count == 0)
         {
+            HasDetourLayout = false;
             return false;
         }
 
         Vector3 direction = ballLocal - robotLocal;
         direction.y = 0f;
         float directDistance = direction.magnitude;
-        if (directDistance < 2.4f)
+        if (directDistance < 0.8f)
         {
-            Vector3 fallbackWorldDirection = robot != null ? robot.right : arena.forward;
-            direction = arena.InverseTransformDirection(fallbackWorldDirection);
-            direction.y = 0f;
-            direction.Normalize();
-            directDistance = 3.4f;
-            ballLocal = robotLocal + direction * directDistance;
+            return false;
         }
 
         direction /= directDistance;
         Vector3 perpendicular = new Vector3(-direction.z, 0f, direction.x);
-        float barrierWidth = Mathf.Clamp(directDistance * 0.8f, 2.4f, 3.2f);
+        float requestedWidth = Mathf.Lerp(1.25f, 3.0f, CurrentDifficulty);
+        float barrierWidth = Mathf.Clamp(requestedWidth, 1.1f, placementHalfExtent * 1.2f);
         float barrierDepth = 0.65f;
-        float barrierHeight = 1.05f;
+        // The barrier must occlude the camera ray, not merely block the tracks.
+        // A lower wall allowed the policy to see the ball over its top and inflated
+        // the apparent detour success rate without teaching a real bypass.
+        float barrierHeight = 1.60f;
         Vector3 position = Vector3.Lerp(robotLocal, ballLocal, 0.5f);
         position.y = floorTop + barrierHeight * 0.5f;
 
@@ -250,6 +329,17 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         barrier.localRotation = Quaternion.Euler(0f, yaw, 0f);
         barrier.localScale = new Vector3(barrierWidth, barrierHeight, barrierDepth);
         occupied.Add(new Vector3(position.x, barrierWidth * 0.55f + 0.35f, position.z));
+
+        float sideClearance = barrierWidth * 0.5f + 0.75f;
+        detourSideClearance = sideClearance;
+        detourHalfDepth = barrierDepth * 0.5f + 0.55f;
+        detourDirectionLocal = direction;
+        Vector3 flatCenter = new Vector3(position.x, 0f, position.z);
+        detourCenterLocal = flatCenter;
+        detourLeftEntryLocal = flatCenter + perpendicular * sideClearance - direction * detourHalfDepth;
+        detourLeftExitLocal = flatCenter + perpendicular * sideClearance + direction * detourHalfDepth;
+        detourRightEntryLocal = flatCenter - perpendicular * sideClearance - direction * detourHalfDepth;
+        detourRightExitLocal = flatCenter - perpendicular * sideClearance + direction * detourHalfDepth;
         return true;
     }
 

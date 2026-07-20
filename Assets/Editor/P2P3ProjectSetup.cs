@@ -3,7 +3,6 @@ using System.IO;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Policies;
-using Unity.Robotics.ROSTCPConnector;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
@@ -33,7 +32,6 @@ public static class P2P3ProjectSetup
 
         RemoveOldTestAgents(robot);
         RemoveLegacyRootCamera(robot);
-        DisableAutomaticRosConnection();
         ConfigureManipulatorPose(robot);
 
         PrefabUtility.RecordPrefabInstancePropertyModifications(robot.transform);
@@ -412,14 +410,6 @@ public static class P2P3ProjectSetup
             {
                 UnityEngine.Object.DestroyImmediate(agent);
             }
-        }
-    }
-
-    private static void DisableAutomaticRosConnection()
-    {
-        foreach (ROSConnection connection in UnityEngine.Object.FindObjectsByType<ROSConnection>(FindObjectsInactive.Include))
-        {
-            connection.ConnectOnStart = false;
         }
     }
 

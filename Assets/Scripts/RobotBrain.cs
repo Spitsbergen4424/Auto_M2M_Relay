@@ -9,12 +9,14 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody), typeof(TrackController), typeof(VirtualSensors))]
 public sealed class RobotBrain : Agent
 {
+    public int SuccessfulEpisodeCount { get; private set; }
+    public int EpisodeSequence { get; private set; }
+
     [Header("Robot subsystems")]
     [SerializeField] private TrackController trackController;
     [SerializeField] private VirtualSensors virtualSensors;
     [SerializeField] private GripperController gripperController;
     [SerializeField] private SimulatedYoloCamera yoloCamera;
-    [SerializeField] private ROSBridge rosBridge;
     [SerializeField] private DiagnosticLogger diagnosticLogger;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
@@ -61,6 +63,35 @@ public sealed class RobotBrain : Agent
     private int episodeStationarySpinSteps;
     private int episodeStuckEvents;
     private int episodeSearchCells;
+    private float previousObstacleClearance;
+    private bool episodeDetourLayout;
+    private bool hasDetourPotential;
+    private float previousDetourPotential;
+    private int highestDetourStage;
+    private float evaluationBoundaryRadiusOverride;
+
+    public void SetEvaluationBoundaryRadius(float radius)
+    {
+        evaluationBoundaryRadiusOverride = Mathf.Max(0f, radius);
+    }
+
+    public void ResetEvaluationActuators()
+    {
+        trackController?.Stop();
+        if (body != null)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+
+        cameraYaw = 0f;
+        cameraTurnCommand = 0f;
+        previousDriveAction = Vector2.zero;
+        if (cameraPivot != null)
+        {
+            cameraPivot.localRotation = Quaternion.identity;
+        }
+    }
 
     private void Update()
     {
@@ -98,7 +129,6 @@ public sealed class RobotBrain : Agent
         trackController ??= GetComponent<TrackController>();
         virtualSensors ??= GetComponent<VirtualSensors>();
         gripperController ??= GetComponent<GripperController>();
-        rosBridge ??= GetComponent<ROSBridge>();
         diagnosticLogger ??= GetComponent<DiagnosticLogger>();
         obstacleRandomizer = GetComponentInParent<ArenaObstacleRandomizer>();
         if (targetBall != null)
@@ -130,6 +160,7 @@ public sealed class RobotBrain : Agent
 
     public override void OnEpisodeBegin()
     {
+        EpisodeSequence++;
         if (!initialized)
         {
             Initialize();
@@ -175,6 +206,11 @@ public sealed class RobotBrain : Agent
         }
 
         obstacleRandomizer?.RandomizeLayout();
+        episodeDetourLayout = obstacleRandomizer != null && obstacleRandomizer.HasDetourLayout;
+        hasDetourPotential = episodeDetourLayout &&
+                              obstacleRandomizer.TryGetDetourPathPotential(
+                                  transform.position, out previousDetourPotential);
+        highestDetourStage = 0;
 
         previousDistance = DistanceToBall();
         previousDriveAction = Vector2.zero;
@@ -206,6 +242,9 @@ public sealed class RobotBrain : Agent
         episodeStationarySpinSteps = 0;
         episodeStuckEvents = 0;
         episodeSearchCells = 0;
+        previousObstacleClearance = virtualSensors != null
+            ? virtualSensors.UltrasonicNormalized
+            : 1f;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -249,15 +288,6 @@ public sealed class RobotBrain : Agent
             int gripperCommand = actions.DiscreteActions.Length > 0 ? actions.DiscreteActions[0] : 0;
             gripperController?.ApplyCommand(gripperCommand);
 
-            if (rosBridge != null && rosBridge.RealRobotMode)
-            {
-                rosBridge.PublishCommand(gas, steer);
-                rosBridge.PublishCameraCmd(cameraYaw);
-                if (gripperCommand != 0)
-                {
-                    rosBridge.PublishGripperCmd(gripperCommand);
-                }
-            }
         }
 
         CalculateRewards(gas, steer);
@@ -313,12 +343,21 @@ public sealed class RobotBrain : Agent
             lastBallVisibleTime = Time.time;
             searchWindowStartTime = Time.time;
             searchWindowStartPosition = transform.position;
-            AddReward(distanceDelta * 0.6f);
+            AddReward(distanceDelta * RewardTuning.VisibleDistanceProgress);
             if (!ballEverSeen)
             {
                 ballEverSeen = true;
                 detectionTime = Time.time - episodeStartTime;
-                AddReward(0.25f);
+                // Finding a ball after genuine blind exploration is the sparse event
+                // that proves a barrier was successfully bypassed. Reward it much more
+                // than an immediately visible spawn, without exposing hidden coordinates.
+                AddReward(detectionTime >= RewardTuning.DelayedDetectionSeconds
+                    ? RewardTuning.DelayedDetectionReward
+                    : RewardTuning.ImmediateDetectionReward);
+                if (episodeDetourLayout)
+                {
+                    AddReward(RewardTuning.DetourDiscoveryReward);
+                }
             }
         }
         else
@@ -331,6 +370,24 @@ public sealed class RobotBrain : Agent
             {
                 episodeSearchCells++;
                 AddReward(ActiveSearchRewardShaping.NewAreaReward);
+            }
+
+            if (hasDetourPotential && obstacleRandomizer != null &&
+                obstacleRandomizer.TryGetDetourPathPotential(transform.position, out float detourPotential))
+            {
+                float progress = Mathf.Clamp(
+                    previousDetourPotential - detourPotential,
+                    -RewardTuning.MaximumDetourProgressPerDecision,
+                    RewardTuning.MaximumDetourProgressPerDecision);
+                AddReward(progress * RewardTuning.DetourPathProgress);
+                previousDetourPotential = detourPotential;
+
+                if (obstacleRandomizer.TryGetDetourStage(transform.position, out int detourStage) &&
+                    detourStage > highestDetourStage)
+                {
+                    AddReward((detourStage - highestDetourStage) * RewardTuning.DetourStageReward);
+                    highestDetourStage = detourStage;
+                }
             }
 
             float timeWithoutBall = Time.time - lastBallVisibleTime;
@@ -379,12 +436,14 @@ public sealed class RobotBrain : Agent
 
         if (ballWasVisible && !visible)
         {
-            AddReward(-0.01f);
+            AddReward(-RewardTuning.LostSightPenalty);
         }
         ballWasVisible = visible;
 
         Vector2 action = new Vector2(gas, steer);
-        AddReward(-Vector2.Distance(action, previousDriveAction) * 0.0025f);
+        // Keep only a tiny smoothing cost. A larger value taught the robot to keep
+        // driving into an obstacle instead of making the sharp turn needed to escape.
+        AddReward(-Vector2.Distance(action, previousDriveAction) * RewardTuning.ActionChangePenalty);
         previousDriveAction = action;
 
         if (visible && targetBall != null)
@@ -409,20 +468,30 @@ public sealed class RobotBrain : Agent
 
         if (virtualSensors != null)
         {
-            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * 0.002f);
-            if (virtualSensors.UltrasonicNormalized < 0.08f)
+            float clearance = virtualSensors.UltrasonicNormalized;
+            float clearanceProgress = clearance - previousObstacleClearance;
+            bool obstacleNearby = clearance < RewardTuning.ObstacleClearanceThreshold ||
+                                  previousObstacleClearance < RewardTuning.ObstacleClearanceThreshold;
+            if (obstacleNearby)
             {
-                AddReward(-0.003f);
+                // Potential-based shaping: approaching a barrier costs exactly what
+                // leaving it earns. It teaches recovery without rewarding oscillation.
+                AddReward(clearanceProgress * RewardTuning.ObstacleClearanceProgress);
             }
+
+            previousObstacleClearance = clearance;
+            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * RewardTuning.SideIrPenalty);
+            if (clearance < RewardTuning.CriticalObstacleDistance)
+                AddReward(-RewardTuning.CriticalObstaclePenalty);
 
             if (!gripperReached && virtualSensors.GripperIR >= 1f)
             {
                 gripperReached = true;
-                AddReward(0.5f);
+                AddReward(RewardTuning.GripperReachedReward);
             }
         }
 
-        AddReward(-0.0004f);
+        AddReward(-RewardTuning.DecisionStepPenalty);
         previousDistance = distance;
 
         if (gripperController != null && gripperController.HasBall)
@@ -432,11 +501,15 @@ public sealed class RobotBrain : Agent
             if (!IsManualControl())
             {
                 AddReward(successReward);
+                SuccessfulEpisodeCount++;
                 ReportEpisode(true);
                 EndEpisode();
             }
         }
-        else if ((transform.position - robotStartPosition).sqrMagnitude > arenaRadius * arenaRadius ||
+        else if ((transform.position - robotStartPosition).sqrMagnitude >
+                 Mathf.Pow(evaluationBoundaryRadiusOverride > 0f
+                     ? evaluationBoundaryRadiusOverride
+                     : arenaRadius, 2f) ||
                  transform.position.y < robotStartPosition.y - 1f)
         {
             AddReward(-2f);
@@ -527,6 +600,10 @@ public sealed class RobotBrain : Agent
         stats.Add("Robot/SearchCells", episodeSearchCells);
         stats.Add("Robot/StationarySpinSteps", episodeStationarySpinSteps);
         stats.Add("Robot/StuckEvents", episodeStuckEvents);
+        if (episodeDetourLayout)
+        {
+            stats.Add("Robot/DetourSuccessRate", success ? 1f : 0f);
+        }
         episodeRunning = false;
     }
 
@@ -535,7 +612,7 @@ public sealed class RobotBrain : Agent
         if (IsObstacleOrWall(collision.collider.transform))
         {
             episodeCollisionCount++;
-            AddReward(-0.03f);
+            AddReward(-RewardTuning.CollisionPenalty);
         }
     }
 

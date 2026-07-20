@@ -1,0 +1,37 @@
+behaviors:
+  GFSX_Brain:
+    trainer_type: ppo
+    hyperparameters:
+      batch_size: 2048
+      buffer_size: 40960
+      learning_rate: 0.00003
+      beta: 0.003
+      epsilon: 0.15
+      lambd: 0.95
+      num_epoch: 3
+      learning_rate_schedule: linear
+    network_settings:
+      normalize: true
+      hidden_units: 256
+      num_layers: 2
+      memory:
+        sequence_length: 64
+        memory_size: 256
+    reward_signals:
+      extrinsic:
+        gamma: 0.995
+        strength: 1.0
+      curiosity:
+        gamma: 0.99
+        strength: 0.008
+        encoding_size: 128
+        learning_rate: 0.0002
+    keep_checkpoints: 8
+    checkpoint_interval: 250000
+    max_steps: 4000000
+    time_horizon: 1000
+    summary_freq: 20000
+
+environment_parameters:
+  detour_probability: 1.0
+  arena_difficulty: 1.0
