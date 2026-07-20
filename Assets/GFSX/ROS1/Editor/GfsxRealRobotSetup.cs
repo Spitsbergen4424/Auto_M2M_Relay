@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Policies;
+using Unity.InferenceEngine;
 using Unity.Robotics.ROSTCPConnector;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -48,10 +49,10 @@ public static class GfsxRealRobotSetup
 
         RealYoloCamera realCamera = GetOrAdd<RealYoloCamera>(robotCameraTransform.gameObject);
 
-        realSensors.Configure(1.2f);
+        realSensors.Configure(2.0f);
         realSensors.ConfigureFreshnessTimeout(0.5f);
         realCamera.Configure(5005, 0.35f);
-        bridge.ConfigureRealMode("192.168.2.154", 10000, true, false, 0.05f, 0.3f, 10f, false, 0.30f,
+        bridge.ConfigureRealMode("192.168.2.154", 10000, true, false, 0.25f, 0.9f, 10f, false, 0.30f,
             false);
 
         brain.SetSensorSource(realSensors);
@@ -73,11 +74,19 @@ public static class GfsxRealRobotSetup
         realCamera.enabled = true;
 
         BehaviorParameters behavior = GetRequiredComponent<BehaviorParameters>(robot);
+        ModelAsset model = AssetDatabase.LoadAssetAtPath<ModelAsset>("Assets/GFSX_Brain.onnx");
+        if (model == null)
+        {
+            throw new InvalidOperationException("Assets/GFSX_Brain.onnx could not be imported as a ModelAsset.");
+        }
+
         behavior.BehaviorName = "GFSX_Brain";
-        behavior.BehaviorType = BehaviorType.Default;
+        behavior.Model = model;
+        behavior.BehaviorType = BehaviorType.InferenceOnly;
         behavior.BrainParameters.VectorObservationSize = 15;
         behavior.BrainParameters.NumStackedVectorObservations = 1;
         behavior.BrainParameters.ActionSpec = new ActionSpec(3, new[] { 2 });
+        brain.MaxStep = 0;
 
         DecisionRequester requester = GetRequiredComponent<DecisionRequester>(robot);
         requester.DecisionPeriod = 5;
@@ -156,6 +165,13 @@ public static class GfsxRealRobotSetup
         Require(!bridge.EnableMotorCommands, "Motor commands must be disabled by default.");
         Require(Mathf.Approximately(bridge.SafetyStopDistanceMeters, 0.30f),
             $"Safety stop distance must be 0.30 m, found {bridge.SafetyStopDistanceMeters}.");
+        Require(bridge.StopAfterCapture, "Physical bridge must stop and latch after gripper capture.");
+        Require(bridge.MaxLinearSpeedMetersPerSecond >= 0.175f,
+            "Linear command cap is below the robot's effective 35 PWM motor threshold.");
+        Require(bridge.MaxAngularSpeedRadiansPerSecond >= 0.70f,
+            "Angular command cap is below the robot's effective differential-drive threshold.");
+        Require(Mathf.Approximately(realSensors.UltrasonicMaxDistanceMeters, 2.0f),
+            "Ultrasonic normalization must use the 2.0 m training contract.");
 
         TrackController trackController = brain.GetComponent<TrackController>();
         Require(trackController == null || !trackController.enabled,
@@ -167,6 +183,10 @@ public static class GfsxRealRobotSetup
         BehaviorParameters behavior = brain.GetComponent<BehaviorParameters>();
         Require(behavior != null, "BehaviorParameters is missing on RobotBrain.");
         Require(behavior.BehaviorName == "GFSX_Brain", "BehaviorName must remain GFSX_Brain.");
+        Require(behavior.Model != null, "Assets/GFSX_Brain.onnx must be assigned for physical inference.");
+        Require(behavior.BehaviorType == BehaviorType.InferenceOnly,
+            "RealRobotScene must use InferenceOnly so it cannot silently fall back to Heuristic.");
+        Require(brain.MaxStep == 0, "MaxStep must be zero for a continuous physical-robot mission.");
         Require(behavior.BrainParameters.VectorObservationSize == 15,
             "RealRobotScene must keep the 15-observation PPO interface.");
         Require(behavior.BrainParameters.NumStackedVectorObservations == 1,

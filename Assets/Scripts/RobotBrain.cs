@@ -69,6 +69,9 @@ public sealed class RobotBrain : Agent
     public MonoBehaviour PoseSource => poseSourceBehaviour;
     public bool ExternalActuationEnabled => externalActuationEnabled;
     public RobotActionCommand LastAction { get; private set; }
+    public float NormalizedCameraYaw => cameraServoLimit > 0f
+        ? Mathf.Clamp(cameraYaw / cameraServoLimit, -1f, 1f)
+        : 0f;
 
     private void Update()
     {
@@ -190,6 +193,15 @@ public sealed class RobotBrain : Agent
             body.angularVelocity = Vector3.zero;
         }
 
+        // A physical robot is not teleported back to the start when an ML-Agents
+        // episode restarts. Real mode is a continuous inference mission; the pose
+        // and capture latches are reset only by explicit operator actions.
+        if (externalActuationEnabled)
+        {
+            episodeRunning = false;
+            return;
+        }
+
         if (poseSourceBehaviour is IRobotPoseSource poseSource)
         {
             poseSource.ResetPoseEstimate();
@@ -285,8 +297,8 @@ public sealed class RobotBrain : Agent
         sensor.AddObservation(visible ? yoloCamera.NormalizedDistance : 1f);                 // 6
         sensor.AddObservation(yoloCamera != null ? yoloCamera.LastKnownDirection : 0f);      // 7
         sensor.AddObservation(visible ? 1f : 0f);                                            // 8
-        sensor.AddObservation(cameraServoLimit > 0f ? cameraYaw / cameraServoLimit : 0f);    // 9
-        sensor.AddObservation(gripperController != null && gripperController.HasBall ? 1f : 0f);// 10
+        sensor.AddObservation(NormalizedCameraYaw);                                          // 9
+        sensor.AddObservation(HasCapturedBall() ? 1f : 0f);                                  // 10
         sensor.AddObservation(Mathf.Clamp(relativePosition.x / arenaRadius, -1f, 1f));       // 11
         sensor.AddObservation(Mathf.Clamp(relativePosition.z / arenaRadius, -1f, 1f));       // 12
         sensor.AddObservation(headingDegrees / 180f);                                        // 13
@@ -300,7 +312,9 @@ public sealed class RobotBrain : Agent
         float steer = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
         cameraTurnCommand = Mathf.Clamp(actions.ContinuousActions[2], -1f, 1f);
         int gripperCommand = actions.DiscreteActions.Length > 0 ? actions.DiscreteActions[0] : 0;
-        LastAction = new RobotActionCommand(gas, steer, cameraTurnCommand, gripperCommand);
+        // The real camera ROS API accepts an absolute pan position, while the
+        // policy action is a turn rate. Publish the integrated camera state.
+        LastAction = new RobotActionCommand(gas, steer, NormalizedCameraYaw, gripperCommand);
         ActionComputed?.Invoke(LastAction);
 
         if (!externalActuationEnabled && !IsManualControl())
@@ -309,7 +323,10 @@ public sealed class RobotBrain : Agent
             gripperController?.ApplyCommand(gripperCommand);
         }
 
-        CalculateRewards(gas, steer);
+        if (!externalActuationEnabled)
+        {
+            CalculateRewards(gas, steer);
+        }
     }
 
     private bool IsManualControl()
@@ -587,6 +604,16 @@ public sealed class RobotBrain : Agent
     private IRobotPoseSource GetPoseSource()
     {
         return poseSourceBehaviour as IRobotPoseSource;
+    }
+
+    private bool HasCapturedBall()
+    {
+        if (poseSourceBehaviour is IRobotCaptureSource captureSource)
+        {
+            return captureSource.HasCapturedBall;
+        }
+
+        return gripperController != null && gripperController.HasBall;
     }
 
     private Vector3 GetObservedWorldPosition()

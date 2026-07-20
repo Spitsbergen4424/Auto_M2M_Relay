@@ -21,10 +21,17 @@ public interface IRobotPoseSource
     void ResetPoseEstimate();
 }
 
+public interface IRobotCaptureSource
+{
+    bool HasCapturedBall { get; }
+}
+
 public readonly struct RobotActionCommand
 {
     public readonly float Gas;
     public readonly float Steer;
+    // Absolute normalized camera yaw expected by /cmd_camera_pan: -1 = left,
+    // 0 = centre, 1 = right. It is deliberately not the PPO turn-rate action.
     public readonly float CameraPan;
     public readonly int GripperCommand;
 

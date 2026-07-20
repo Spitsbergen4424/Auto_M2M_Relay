@@ -21,22 +21,31 @@ This document covers the safe real-robot path for `Auto_M2M_Relay`.
 6. Confirm that the real sensors update in the inspector.
 7. Confirm that YOLO packets stay fresh.
 8. Confirm that `RobotBrain` produces actions.
-9. Place the robot so the tracks are off the floor before enabling motion.
-10. Only then enable motor commands.
-11. Use `EmergencyStop()` or exit Play Mode to stop.
+9. Use the `GfsxRealRobotBridge` component menu and run `Prepare Gripper` only
+   when the arm has room to move.
+10. Place the robot so the tracks are off the floor before enabling motion.
+11. Set `dryRun=false`, then set `enableMotorCommands=true`.
+12. Use the component menu `Emergency Stop` or exit Play Mode to stop.
 
 ## Safety Notes
 
 - `GfsxRealRobotBridge` ships with `dryRun=true` and `enableMotorCommands=false`.
-- Linear motion is clamped to `0.05 m/s` by default.
-- Angular motion is clamped to about `0.3 rad/s` by default.
+- Normalized PPO actions are mapped through a `0.15` deadband to the robot's
+  effective motor range. The hardware cannot produce arbitrarily slow motion:
+  `MIN_MOTOR_PWM=35` corresponds to roughly `0.175 m/s` in the current driver.
+- Linear ROS commands are capped at `0.25 m/s` and angular commands at `0.9 rad/s`.
 - Unity adds a local ultrasonic stop at `0.30 m` when moving forward.
 - The bridge stops on stale ROS sensor packets and stale YOLO packets.
+- The bridge also stops if PPO actions stop arriving for `0.5 s`.
 - The bridge publishes a zero twist on disable, destroy, and application quit when motor commands are enabled.
+- A stable gripper IR signal latches `ballCaptured` and permanently stops drive commands
+  until the operator explicitly resets the captured state.
 
 ## Sensor Model
 
-- Real sensor input is normalized to match the simulation contract: `0 = near`, `1 = far`.
+- Real ultrasonic input uses the simulation's `2.0 m` contract: `0 = near`, `1 = 2 m or farther`.
+- Only `/sensor/data` refreshes ultrasonic safety. PWM and the separate gripper topic
+  cannot make an old ultrasonic reading look fresh.
 - Real pose is estimated by dead reckoning from the actually sent `linear.x` and `angular.z`.
 - This estimate has no encoders or odometry and will accumulate error.
 
@@ -49,3 +58,13 @@ This document covers the safe real-robot path for `Auto_M2M_Relay`.
 ## Unity Setup
 
 Use `Tools > URFU > Configure Real Robot Scene` to build or refresh the scene, then `Tools > URFU > Validate Real Robot Scene` to verify the configuration.
+
+The setup assigns `Assets/GFSX_Brain.onnx`, selects `InferenceOnly`, and sets
+`RobotBrain.MaxStep=0`. A physical mission must not restart an ML-Agents episode
+and reset dead reckoning while the robot remains in place.
+
+## Raspberry Pi safety patch
+
+Unity's 0.30 m stop is an additional layer, not the primary motor safety layer.
+Apply the code in `ROBOT_SIDE_SAFETY_PATCH.md` to the host copy of
+`unity_master_team2.py` before enabling tracks on the floor.

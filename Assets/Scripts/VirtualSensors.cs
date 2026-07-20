@@ -27,6 +27,9 @@ public sealed class VirtualSensors : MonoBehaviour, IRobotSensorSource
     public float LeftIR { get; private set; }
     public float RightIR { get; private set; }
     public float GripperIR { get; private set; }
+    public float LeftIr => LeftIR;
+    public float RightIr => RightIR;
+    public float GripperIr => GripperIR;
     public GameObject DetectedBall { get; private set; }
     public float LastPacketTime { get; private set; }
     public float LastPacketAgeSeconds => Time.time - LastPacketTime;
