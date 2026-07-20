@@ -43,7 +43,18 @@ public sealed class RealYoloCamera : YoloVisionSource
     public float InferenceMilliseconds { get; private set; }
     public float BoundingBoxHeightRatio { get; private set; }
     public long LastSequence { get; private set; } = -1;
+    public int ListenPort => listenPort;
+    public float PacketTimeoutSeconds => packetTimeoutSeconds;
     public bool IsReceivingPackets => Time.unscaledTime - lastPacketTime <= packetTimeoutSeconds;
+    public float LastPacketAgeSeconds => float.IsNegativeInfinity(lastPacketTime)
+        ? float.PositiveInfinity
+        : Time.unscaledTime - lastPacketTime;
+
+    public void Configure(int port, float timeoutSeconds)
+    {
+        listenPort = port;
+        packetTimeoutSeconds = Mathf.Max(0.1f, timeoutSeconds);
+    }
 
     private readonly ConcurrentQueue<YoloPacket> packetQueue = new ConcurrentQueue<YoloPacket>();
     private UdpClient udpClient;

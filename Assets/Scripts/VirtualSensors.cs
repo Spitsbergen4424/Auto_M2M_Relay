@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public sealed class VirtualSensors : MonoBehaviour
+public sealed class VirtualSensors : MonoBehaviour, IRobotSensorSource
 {
     [Header("Sensor origins")]
     [SerializeField] private Transform centerPoint;
@@ -28,6 +28,14 @@ public sealed class VirtualSensors : MonoBehaviour
     public float RightIR { get; private set; }
     public float GripperIR { get; private set; }
     public GameObject DetectedBall { get; private set; }
+    public float LastPacketTime { get; private set; }
+    public float LastPacketAgeSeconds => Time.time - LastPacketTime;
+    public bool IsDataFresh => true;
+
+    private void Awake()
+    {
+        LastPacketTime = Time.time;
+    }
 
     public void ConfigureScale(float multiplier)
     {
@@ -50,6 +58,7 @@ public sealed class VirtualSensors : MonoBehaviour
         LeftIR = ReadObstacleIR(leftIRPoint);
         RightIR = ReadObstacleIR(rightIRPoint);
         GripperIR = ReadGripperIR();
+        LastPacketTime = Time.time;
     }
 
     private float ReadUltrasonic()
