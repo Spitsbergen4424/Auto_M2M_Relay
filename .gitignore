@@ -8,6 +8,9 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
+/diagnostic_log.csv
+/*_timers.json
+config.local.yaml
 
 # Never ignore Asset meta data
 !/[Aa]ssets/**/*.meta

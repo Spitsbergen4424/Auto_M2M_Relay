@@ -20,6 +20,7 @@ public sealed class RobotBrain : Agent
     [SerializeField] private YoloVisionSource yoloCamera;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
+    [SerializeField] private DiagnosticLogger diagnosticLogger;
 
     [Header("Episode")]
     [SerializeField] private float arenaRadius = 4.5f;
@@ -63,6 +64,18 @@ public sealed class RobotBrain : Agent
     private int episodeStuckEvents;
     private int episodeSearchCells;
     private bool externalActuationEnabled;
+    private bool lastObservedBallSeen;
+    private float lastObservedBallAngle;
+    private float lastObservedBallDistance = 1f;
+    private float lastObservedUltrasonic = 1f;
+    private float lastObservedLeftIr;
+    private float lastObservedRightIr;
+    private float lastObservedGripperIr;
+    private bool lastObservedHasBall;
+    private Vector3 lastObservedRelativePosition;
+    private float lastObservedHeadingDegrees;
+    private float lastObservedLinearSpeed;
+    private float lastObservedMaxLinearSpeed = 1f;
 
     public event Action<RobotActionCommand> ActionComputed;
 
@@ -118,6 +131,7 @@ public sealed class RobotBrain : Agent
         {
             sensorSourceBehaviour = virtualSensors;
         }
+        diagnosticLogger ??= GetComponent<DiagnosticLogger>();
 
         gripperController ??= GetComponent<GripperController>();
         obstacleRandomizer = GetComponentInParent<ArenaObstacleRandomizer>();
@@ -290,6 +304,19 @@ public sealed class RobotBrain : Agent
         float linearSpeed = GetObservedLinearSpeed();
         float maxLinearSpeed = GetObservedMaxLinearSpeed();
 
+        lastObservedUltrasonic = ultrasonic;
+        lastObservedLeftIr = leftIr;
+        lastObservedRightIr = rightIr;
+        lastObservedGripperIr = gripperIr;
+        lastObservedBallSeen = visible;
+        lastObservedBallAngle = visible ? yoloCamera.HorizontalOffset : 0f;
+        lastObservedBallDistance = visible ? yoloCamera.NormalizedDistance : 1f;
+        lastObservedHasBall = HasCapturedBall();
+        lastObservedRelativePosition = relativePosition;
+        lastObservedHeadingDegrees = headingDegrees;
+        lastObservedLinearSpeed = linearSpeed;
+        lastObservedMaxLinearSpeed = maxLinearSpeed;
+
         sensor.AddObservation(ultrasonic);                                                   // 1
         sensor.AddObservation(leftIr);                                                      // 2
         sensor.AddObservation(rightIr);                                                     // 3
@@ -317,6 +344,7 @@ public sealed class RobotBrain : Agent
         // policy action is a turn rate. Publish the integrated camera state.
         LastAction = new RobotActionCommand(gas, steer, NormalizedCameraYaw, gripperCommand);
         ActionComputed?.Invoke(LastAction);
+        LogDiagnosticStep(gas, steer);
 
         if (!externalActuationEnabled && !IsManualControl())
         {
@@ -328,6 +356,42 @@ public sealed class RobotBrain : Agent
         {
             CalculateRewards(gas, steer);
         }
+    }
+
+    private void LogDiagnosticStep(float gas, float steer)
+    {
+        if (diagnosticLogger == null)
+        {
+            return;
+        }
+
+        Vector3 observedRelativePosition = lastObservedRelativePosition;
+        float observedMaxLinearSpeed = Mathf.Max(0.0001f, lastObservedMaxLinearSpeed);
+        float normalizedHeading = lastObservedHeadingDegrees / 180f;
+        float normalizedSpeed = Mathf.Clamp01(Mathf.Abs(lastObservedLinearSpeed) / observedMaxLinearSpeed);
+        float normalizedDisplacementX = Mathf.Clamp(observedRelativePosition.x / arenaRadius, -1f, 1f);
+        float normalizedDisplacementZ = Mathf.Clamp(observedRelativePosition.z / arenaRadius, -1f, 1f);
+
+        // Keep the CSV aligned with the actual observation vector the policy saw.
+        diagnosticLogger.LogStep(
+            StepCount,
+            lastObservedBallSeen,
+            lastObservedBallAngle,
+            lastObservedBallDistance,
+            lastObservedUltrasonic,
+            lastObservedLeftIr,
+            lastObservedRightIr,
+            lastObservedGripperIr,
+            NormalizedCameraYaw,
+            gas,
+            steer,
+            lastObservedHasBall,
+            0,
+            false,
+            normalizedDisplacementX,
+            normalizedDisplacementZ,
+            normalizedHeading,
+            normalizedSpeed);
     }
 
     private bool IsManualControl()
