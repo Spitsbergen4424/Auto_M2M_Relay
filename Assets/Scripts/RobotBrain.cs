@@ -6,6 +6,7 @@ using Unity.MLAgents.Policies;
 using Unity.MLAgents.Sensors;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(Rigidbody), typeof(TrackController))]
 public sealed class RobotBrain : Agent
@@ -187,7 +188,7 @@ public sealed class RobotBrain : Agent
 
         gripperController?.Release();
         trackController?.Stop();
-        if (body != null)
+        if (body != null && !body.isKinematic)
         {
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;

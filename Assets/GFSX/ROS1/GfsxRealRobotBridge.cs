@@ -12,6 +12,8 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     [SerializeField] private int rosPort = 10000;
     [SerializeField] private bool dryRun = true;
     [SerializeField] private bool enableMotorCommands = false;
+    [SerializeField] private bool enableGripperCommands = false;
+
 
     [Header("Actuation")]
     [SerializeField, Min(0.001f)] private float maxLinearSpeed = 0.25f;
@@ -91,6 +93,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     public string RosState => rosState;
     public bool DryRun => dryRun;
     public bool EnableMotorCommands => enableMotorCommands;
+    public bool EnableGripperCommands => enableGripperCommands;
     public bool InvertSteering => invertSteering;
     public float SafetyStopDistanceMeters => safetyStopDistanceMeters;
     public float PublishRateHz => publishRateHz;
@@ -112,6 +115,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         rosPort = port;
         dryRun = dryRunEnabled;
         enableMotorCommands = motorCommandsEnabled;
+        enableGripperCommands = false;
         maxLinearSpeed = Mathf.Max(0.001f, linearSpeed);
         maxAngularSpeed = Mathf.Max(0.001f, angularSpeed);
         publishRateHz = Mathf.Clamp(publishHzValue, 1f, 60f);
@@ -249,8 +253,28 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     [ContextMenu("Prepare Gripper")]
     public void PrepareGripper()
     {
-        if (!IsMotorCommandAllowed() || ShouldStopForStaleData() || emergencyStopLatched || ballCaptured)
+        if (!IsGripperCommandAllowed())
         {
+            Debug.LogWarning(
+                "Prepare Gripper ignored: gripper commands are disabled.",
+                this);
+            return;
+        }
+
+        if (realRobotSensors == null ||
+            !realRobotSensors.IsSensorDataFresh)
+        {
+            Debug.LogWarning(
+                "Prepare Gripper ignored: real sensor data is stale.",
+                this);
+            return;
+        }
+
+        if (emergencyStopLatched || ballCaptured)
+        {
+            Debug.LogWarning(
+                "Prepare Gripper ignored: emergency stop or capture latch is active.",
+                this);
             return;
         }
 
@@ -455,6 +479,14 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         return !dryRun && enableMotorCommands && rosConnection != null && topicsRegistered;
     }
 
+    private bool IsGripperCommandAllowed()
+    {
+        return !dryRun &&
+            enableGripperCommands &&
+            rosConnection != null &&
+            topicsRegistered;
+    }
+
     private bool ShouldStopForStaleData()
     {
         if (realRobotSensors == null || !realRobotSensors.IsSensorDataFresh)
@@ -549,7 +581,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
 
     private void PublishGripperCommand(int command)
     {
-        if (command <= 0)
+        if (command <= 0 || !IsGripperCommandAllowed())
         {
             return;
         }
