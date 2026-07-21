@@ -58,6 +58,9 @@ public static class GfsxRealRobotSetup
         GfsxRealRobotBridge bridge =
             GetOrAdd<GfsxRealRobotBridge>(robotController);
 
+        DiagnosticLogger diagnosticLogger =
+            GetOrAdd<DiagnosticLogger>(robotController);
+
         SimulatedYoloCamera simulatedCamera =
             robot.GetComponentInChildren<SimulatedYoloCamera>(true);
 
@@ -106,6 +109,7 @@ public static class GfsxRealRobotSetup
         brain.SetPoseSource(bridge);
         brain.SetVisionSource(realCamera);
         brain.SetExternalActuationEnabled(true);
+        ConfigureDiagnosticLogger(diagnosticLogger);
 
         bridge.enabled = true;
 
@@ -171,6 +175,7 @@ public static class GfsxRealRobotSetup
         EditorUtility.SetDirty(robotController);
         EditorUtility.SetDirty(realSensors);
         EditorUtility.SetDirty(bridge);
+        EditorUtility.SetDirty(diagnosticLogger);
         EditorUtility.SetDirty(brain);
         EditorUtility.SetDirty(realCamera);
         EditorUtility.SetDirty(trackController);
@@ -260,6 +265,37 @@ public static class GfsxRealRobotSetup
         Require(
             brain.PoseSource == bridge,
             "RobotBrain must use GfsxRealRobotBridge as its pose source.");
+
+        DiagnosticLogger[] loggers =
+            UnityEngine.Object.FindObjectsByType<DiagnosticLogger>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+        Require(
+            loggers.Length == 1,
+            $"Expected one DiagnosticLogger, found {loggers.Length}.");
+
+        DiagnosticLogger diagnosticLogger = loggers[0];
+        Require(
+            brain.GetComponent<DiagnosticLogger>() == diagnosticLogger,
+            "DiagnosticLogger must be attached to the RobotBrain GameObject.");
+
+        SerializedObject loggerObject = new SerializedObject(diagnosticLogger);
+        Require(
+            loggerObject.FindProperty("enableLogging").boolValue,
+            "DiagnosticLogger must have logging enabled.");
+        Require(
+            loggerObject.FindProperty("logEveryN").intValue == 1,
+            "DiagnosticLogger logEveryN must be 1.");
+        Require(
+            loggerObject.FindProperty("maxRows").intValue == 2000,
+            "DiagnosticLogger maxRows must be 2000.");
+        Require(
+            loggerObject.FindProperty("flushEveryNRows").intValue == 10,
+            "DiagnosticLogger flushEveryNRows must be 10.");
+        Require(
+            loggerObject.FindProperty("fileName").stringValue == "diagnostic_log.csv",
+            "DiagnosticLogger fileName must be diagnostic_log.csv.");
 
         Require(
             realCamera.ListenPort == 5005,
@@ -441,6 +477,18 @@ public static class GfsxRealRobotSetup
         {
             UnityEngine.Object.DestroyImmediate(root);
         }
+    }
+
+    private static void ConfigureDiagnosticLogger(DiagnosticLogger logger)
+    {
+        logger.enabled = true;
+        SerializedObject serializedLogger = new SerializedObject(logger);
+        serializedLogger.FindProperty("enableLogging").boolValue = true;
+        serializedLogger.FindProperty("logEveryN").intValue = 1;
+        serializedLogger.FindProperty("maxRows").intValue = 2000;
+        serializedLogger.FindProperty("flushEveryNRows").intValue = 10;
+        serializedLogger.FindProperty("fileName").stringValue = "diagnostic_log.csv";
+        serializedLogger.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static ROSConnection EnsureRosConnection()
