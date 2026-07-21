@@ -108,7 +108,10 @@ public static class GfsxRealRobotSetup
         brain.SetSensorSource(realSensors);
         brain.SetPoseSource(bridge);
         brain.SetVisionSource(realCamera);
+        brain.SetRealRobotBridge(bridge);
+        brain.SetDiagnosticLogger(diagnosticLogger);
         brain.SetExternalActuationEnabled(true);
+        ConfigureRobotBrainDiagnostics(brain, bridge, diagnosticLogger);
         ConfigureDiagnosticLogger(diagnosticLogger);
 
         bridge.enabled = true;
@@ -266,6 +269,10 @@ public static class GfsxRealRobotSetup
             brain.PoseSource == bridge,
             "RobotBrain must use GfsxRealRobotBridge as its pose source.");
 
+        Require(
+            brain.GetComponent<GfsxRealRobotBridge>() == bridge,
+            "GfsxRealRobotBridge must be attached to the RobotBrain GameObject.");
+
         DiagnosticLogger[] loggers =
             UnityEngine.Object.FindObjectsByType<DiagnosticLogger>(
                 FindObjectsInactive.Include,
@@ -296,6 +303,17 @@ public static class GfsxRealRobotSetup
         Require(
             loggerObject.FindProperty("fileName").stringValue == "diagnostic_log.csv",
             "DiagnosticLogger fileName must be diagnostic_log.csv.");
+
+        SerializedObject brainObject = new SerializedObject(brain);
+        Require(
+            brainObject.FindProperty("confirmedHoldTicks").intValue == 3,
+            "RobotBrain confirmedHoldTicks must default to 3.");
+        Require(
+            brainObject.FindProperty("realRobotBridge").objectReferenceValue == bridge,
+            "RobotBrain must serialize the real robot bridge reference.");
+        Require(
+            brainObject.FindProperty("diagnosticLogger").objectReferenceValue == diagnosticLogger,
+            "RobotBrain must serialize the diagnostic logger reference.");
 
         Require(
             realCamera.ListenPort == 5005,
@@ -489,6 +507,18 @@ public static class GfsxRealRobotSetup
         serializedLogger.FindProperty("flushEveryNRows").intValue = 10;
         serializedLogger.FindProperty("fileName").stringValue = "diagnostic_log.csv";
         serializedLogger.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void ConfigureRobotBrainDiagnostics(
+        RobotBrain brain,
+        GfsxRealRobotBridge bridge,
+        DiagnosticLogger logger)
+    {
+        SerializedObject serializedBrain = new SerializedObject(brain);
+        serializedBrain.FindProperty("realRobotBridge").objectReferenceValue = bridge;
+        serializedBrain.FindProperty("diagnosticLogger").objectReferenceValue = logger;
+        serializedBrain.FindProperty("confirmedHoldTicks").intValue = 3;
+        serializedBrain.ApplyModifiedPropertiesWithoutUndo();
     }
 
     private static ROSConnection EnsureRosConnection()

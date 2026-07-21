@@ -36,6 +36,9 @@ public sealed class RealRobotSensors : MonoBehaviour, IRobotSensorSource
     public float LastSensorDataPacketAgeSeconds => PacketAge(lastSensorDataPacketTime);
     public float LastPwmPacketAgeSeconds => PacketAge(lastPwmPacketTime);
     public float LastGripperIrPacketAgeSeconds => PacketAge(lastGripperIrPacketTime);
+    public float LastSensorDataPacketAgeMilliseconds => AgeToMilliseconds(LastSensorDataPacketAgeSeconds);
+    public float LastPwmPacketAgeMilliseconds => AgeToMilliseconds(LastPwmPacketAgeSeconds);
+    public float LastGripperIrPacketAgeMilliseconds => AgeToMilliseconds(LastGripperIrPacketAgeSeconds);
     public bool IsSensorDataFresh => LastSensorDataPacketAgeSeconds <= freshnessTimeoutSeconds;
     public bool IsGripperSignalFresh => IsSensorDataFresh ||
                                          LastGripperIrPacketAgeSeconds <= freshnessTimeoutSeconds;
@@ -93,6 +96,13 @@ public sealed class RealRobotSensors : MonoBehaviour, IRobotSensorSource
         return float.IsNegativeInfinity(timestamp)
             ? float.PositiveInfinity
             : Time.unscaledTime - timestamp;
+    }
+
+    private static float AgeToMilliseconds(float ageSeconds)
+    {
+        return float.IsNegativeInfinity(ageSeconds) || float.IsNaN(ageSeconds) || float.IsInfinity(ageSeconds)
+            ? -1f
+            : ageSeconds * 1000f;
     }
 
     private static float NormalizeBinary(float value)

@@ -20,6 +20,7 @@ public sealed class RobotBrain : Agent
     [SerializeField] private YoloVisionSource yoloCamera;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
+    [SerializeField] private GfsxRealRobotBridge realRobotBridge;
     [SerializeField] private DiagnosticLogger diagnosticLogger;
 
     [Header("Episode")]
@@ -27,6 +28,8 @@ public sealed class RobotBrain : Agent
     [SerializeField] private float successReward = 5f;
     [SerializeField] private float cameraServoSpeed = 90f;
     [SerializeField] private float cameraServoLimit = 70f;
+    [Min(1)]
+    [SerializeField] private int confirmedHoldTicks = 3;
 
     private Rigidbody body;
     private Rigidbody ballBody;
@@ -71,11 +74,29 @@ public sealed class RobotBrain : Agent
     private float lastObservedLeftIr;
     private float lastObservedRightIr;
     private float lastObservedGripperIr;
+    private float lastObservedSensorDataAgeMs = -1f;
+    private float lastObservedGripperIrAgeMs = -1f;
+    private float lastObservedPwmAgeMs = -1f;
+    private float lastObservedYoloPacketAgeMs = -1f;
+    private float lastObservedYoloInferenceMs = -1f;
     private bool lastObservedHasBall;
     private Vector3 lastObservedRelativePosition;
     private float lastObservedHeadingDegrees;
     private float lastObservedLinearSpeed;
     private float lastObservedMaxLinearSpeed = 1f;
+    private float lastObservedActionAgeMs = -1f;
+    private float lastObservedRequestedLinearX;
+    private float lastObservedRequestedAngularZ;
+    private float lastObservedSentLinearX;
+    private float lastObservedSentAngularZ;
+    private bool lastObservedSafetyStopped;
+    private bool lastObservedEmergencyStop;
+    private bool lastObservedMotorCommandsEnabled;
+    private bool lastObservedDryRun;
+    // One holdTick equals one OnActionReceived() call while hasBall stays true.
+    private int holdTicks;
+    private bool hasConfirmedHold;
+    private bool isRetrying;
 
     public event Action<RobotActionCommand> ActionComputed;
 
@@ -127,6 +148,7 @@ public sealed class RobotBrain : Agent
         body = GetComponent<Rigidbody>();
         trackController ??= GetComponent<TrackController>();
         virtualSensors ??= GetComponent<VirtualSensors>();
+        realRobotBridge ??= GetComponent<GfsxRealRobotBridge>();
         if (sensorSourceBehaviour == null)
         {
             sensorSourceBehaviour = virtualSensors;
@@ -169,6 +191,16 @@ public sealed class RobotBrain : Agent
         targetBall = ball;
     }
 
+    public void SetRealRobotBridge(GfsxRealRobotBridge bridge)
+    {
+        realRobotBridge = bridge;
+    }
+
+    public void SetDiagnosticLogger(DiagnosticLogger logger)
+    {
+        diagnosticLogger = logger;
+    }
+
     public void SetSensorSource(MonoBehaviour source)
     {
         sensorSourceBehaviour = source;
@@ -200,6 +232,7 @@ public sealed class RobotBrain : Agent
             Initialize();
         }
 
+        ResetCaptureDiagnostics();
         gripperController?.Release();
         trackController?.Stop();
         if (body != null && !body.isKinematic)
@@ -303,11 +336,20 @@ public sealed class RobotBrain : Agent
         float headingDegrees = GetObservedHeadingDeltaDegrees();
         float linearSpeed = GetObservedLinearSpeed();
         float maxLinearSpeed = GetObservedMaxLinearSpeed();
+        RealRobotSensors realSensorSource = source as RealRobotSensors;
+        RealYoloCamera realCamera = yoloCamera as RealYoloCamera;
 
         lastObservedUltrasonic = ultrasonic;
         lastObservedLeftIr = leftIr;
         lastObservedRightIr = rightIr;
         lastObservedGripperIr = gripperIr;
+        lastObservedSensorDataAgeMs = realSensorSource != null ? realSensorSource.LastSensorDataPacketAgeMilliseconds : -1f;
+        lastObservedGripperIrAgeMs = realSensorSource != null ? realSensorSource.LastGripperIrPacketAgeMilliseconds : -1f;
+        lastObservedPwmAgeMs = realSensorSource != null ? realSensorSource.LastPwmPacketAgeMilliseconds : -1f;
+        lastObservedYoloPacketAgeMs = realCamera != null ? realCamera.LastPacketAgeMilliseconds : -1f;
+        lastObservedYoloInferenceMs = realCamera != null && realCamera.IsReceivingPackets
+            ? Mathf.Max(0f, realCamera.InferenceMilliseconds)
+            : -1f;
         lastObservedBallSeen = visible;
         lastObservedBallAngle = visible ? yoloCamera.HorizontalOffset : 0f;
         lastObservedBallDistance = visible ? yoloCamera.NormalizedDistance : 1f;
@@ -344,6 +386,8 @@ public sealed class RobotBrain : Agent
         // policy action is a turn rate. Publish the integrated camera state.
         LastAction = new RobotActionCommand(gas, steer, NormalizedCameraYaw, gripperCommand);
         ActionComputed?.Invoke(LastAction);
+        UpdateCaptureDiagnostics(lastObservedHasBall);
+        CaptureBridgeDiagnostics();
         LogDiagnosticStep(gas, steer);
 
         if (!externalActuationEnabled && !IsManualControl())
@@ -365,15 +409,8 @@ public sealed class RobotBrain : Agent
             return;
         }
 
-        Vector3 observedRelativePosition = lastObservedRelativePosition;
-        float observedMaxLinearSpeed = Mathf.Max(0.0001f, lastObservedMaxLinearSpeed);
-        float normalizedHeading = lastObservedHeadingDegrees / 180f;
-        float normalizedSpeed = Mathf.Clamp01(Mathf.Abs(lastObservedLinearSpeed) / observedMaxLinearSpeed);
-        float normalizedDisplacementX = Mathf.Clamp(observedRelativePosition.x / arenaRadius, -1f, 1f);
-        float normalizedDisplacementZ = Mathf.Clamp(observedRelativePosition.z / arenaRadius, -1f, 1f);
-
         // Keep the CSV aligned with the actual observation vector the policy saw.
-        diagnosticLogger.LogStep(
+        diagnosticLogger.LogStep(new DiagnosticStep(
             StepCount,
             lastObservedBallSeen,
             lastObservedBallAngle,
@@ -382,16 +419,93 @@ public sealed class RobotBrain : Agent
             lastObservedLeftIr,
             lastObservedRightIr,
             lastObservedGripperIr,
+            lastObservedSensorDataAgeMs,
+            lastObservedGripperIrAgeMs,
+            lastObservedPwmAgeMs,
+            lastObservedYoloPacketAgeMs,
+            lastObservedYoloInferenceMs,
+            lastObservedActionAgeMs,
             NormalizedCameraYaw,
             gas,
             steer,
             lastObservedHasBall,
-            0,
-            false,
-            normalizedDisplacementX,
-            normalizedDisplacementZ,
-            normalizedHeading,
-            normalizedSpeed);
+            holdTicks,
+            isRetrying,
+            lastObservedRequestedLinearX,
+            lastObservedRequestedAngularZ,
+            lastObservedSentLinearX,
+            lastObservedSentAngularZ,
+            lastObservedSafetyStopped,
+            lastObservedEmergencyStop,
+            lastObservedMotorCommandsEnabled,
+            lastObservedDryRun,
+            Mathf.Clamp(lastObservedRelativePosition.x / Mathf.Max(0.0001f, arenaRadius), -1f, 1f),
+            Mathf.Clamp(lastObservedRelativePosition.z / Mathf.Max(0.0001f, arenaRadius), -1f, 1f),
+            lastObservedHeadingDegrees / 180f,
+            Mathf.Clamp01(Mathf.Abs(lastObservedLinearSpeed) / Mathf.Max(0.0001f, lastObservedMaxLinearSpeed))));
+    }
+
+    private void UpdateCaptureDiagnostics(bool hasBall)
+    {
+        if (hasBall)
+        {
+            if (holdTicks < int.MaxValue)
+            {
+                holdTicks++;
+            }
+
+            int requiredTicks = Mathf.Max(1, confirmedHoldTicks);
+            if (holdTicks >= requiredTicks)
+            {
+                hasConfirmedHold = true;
+                if (isRetrying)
+                {
+                    isRetrying = false;
+                }
+            }
+        }
+        else
+        {
+            holdTicks = 0;
+            if (hasConfirmedHold)
+            {
+                isRetrying = true;
+            }
+        }
+    }
+
+    private void ResetCaptureDiagnostics()
+    {
+        holdTicks = 0;
+        hasConfirmedHold = false;
+        isRetrying = false;
+    }
+
+    private void CaptureBridgeDiagnostics()
+    {
+        if (realRobotBridge == null)
+        {
+            lastObservedRequestedLinearX = 0f;
+            lastObservedRequestedAngularZ = 0f;
+            lastObservedSentLinearX = 0f;
+            lastObservedSentAngularZ = 0f;
+            lastObservedSafetyStopped = false;
+            lastObservedEmergencyStop = false;
+            lastObservedMotorCommandsEnabled = false;
+            lastObservedDryRun = true;
+            lastObservedActionAgeMs = -1f;
+            return;
+        }
+
+        lastObservedRequestedLinearX = realRobotBridge.RequestedLinearX;
+        lastObservedRequestedAngularZ = realRobotBridge.RequestedAngularZ;
+        lastObservedSentLinearX = realRobotBridge.SentLinearX;
+        lastObservedSentAngularZ = realRobotBridge.SentAngularZ;
+        lastObservedSafetyStopped = realRobotBridge.SafetyStopped;
+        lastObservedEmergencyStop = realRobotBridge.EmergencyStop;
+        lastObservedMotorCommandsEnabled = realRobotBridge.MotorCommandsEnabled;
+        lastObservedDryRun = realRobotBridge.DryRun;
+        lastObservedActionAgeMs = realRobotBridge.LastActionAgeMilliseconds;
     }
 
     private bool IsManualControl()

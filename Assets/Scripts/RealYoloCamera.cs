@@ -49,6 +49,7 @@ public sealed class RealYoloCamera : YoloVisionSource
     public float LastPacketAgeSeconds => float.IsNegativeInfinity(lastPacketTime)
         ? float.PositiveInfinity
         : Time.unscaledTime - lastPacketTime;
+    public float LastPacketAgeMilliseconds => AgeToMilliseconds(LastPacketAgeSeconds);
 
     public void Configure(int port, float timeoutSeconds)
     {
@@ -237,6 +238,13 @@ public sealed class RealYoloCamera : YoloVisionSource
     private static bool IsFinite(float value)
     {
         return !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    private static float AgeToMilliseconds(float ageSeconds)
+    {
+        return float.IsNegativeInfinity(ageSeconds) || float.IsNaN(ageSeconds) || float.IsInfinity(ageSeconds)
+            ? -1f
+            : ageSeconds * 1000f;
     }
 
     private void OnGUI()
