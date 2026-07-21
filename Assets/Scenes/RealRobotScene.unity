@@ -119,46 +119,13 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &240824309
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 240824310}
-  m_Layer: 0
-  m_Name: RealRobotEnvironment
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &240824310
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 240824309}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 804950217}
-  - {fileID: 1927671017}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &804950216
+--- !u!1001 &244640092
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 240824310}
+    m_TransformParent: {fileID: 1709594865}
     m_Modifications:
     - target: {fileID: 197762986994940207, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Enabled
@@ -218,7 +185,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5015652399571307337, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Model
-      value: 
+      value:
       objectReference: {fileID: 5022602860645237092, guid: 40641b6effe0a9b41a776488c21bd514, type: 3}
     - target: {fileID: 5015652399571307337, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_BehaviorType
@@ -238,7 +205,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7017733124325141005, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: targetBall
-      value: 
+      value:
       objectReference: {fileID: 0}
     - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: MaxStep
@@ -246,20 +213,28 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: targetBall
-      value: 
+      value:
       objectReference: {fileID: 0}
     - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: yoloCamera
-      value: 
-      objectReference: {fileID: 804950220}
+      value:
+      objectReference: {fileID: 244640096}
+    - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
+      propertyPath: realRobotBridge
+      value:
+      objectReference: {fileID: 244640098}
+    - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
+      propertyPath: diagnosticLogger
+      value:
+      objectReference: {fileID: 244640097}
     - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: poseSourceBehaviour
-      value: 
-      objectReference: {fileID: 804950221}
+      value:
+      objectReference: {fileID: 244640098}
     - target: {fileID: 7793226955976914508, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: sensorSourceBehaviour
-      value: 
-      objectReference: {fileID: 804950222}
+      value:
+      objectReference: {fileID: 244640099}
     - target: {fileID: 9114044672733849859, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -272,60 +247,80 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 7002251254185872271, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 804950222}
+      addedObject: {fileID: 244640099}
     - targetCorrespondingSourceObject: {fileID: 7002251254185872271, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 804950221}
+      addedObject: {fileID: 244640098}
+    - targetCorrespondingSourceObject: {fileID: 7002251254185872271, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 244640097}
     - targetCorrespondingSourceObject: {fileID: 2274134918363507002, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 804950220}
+      addedObject: {fileID: 244640096}
   m_SourcePrefab: {fileID: 100100000, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
---- !u!4 &804950217 stripped
+--- !u!4 &244640093 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1515748014103497866, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
-  m_PrefabInstance: {fileID: 804950216}
+  m_PrefabInstance: {fileID: 244640092}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &804950218 stripped
+--- !u!1 &244640094 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 2274134918363507002, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
-  m_PrefabInstance: {fileID: 804950216}
+  m_PrefabInstance: {fileID: 244640092}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &804950219 stripped
+--- !u!1 &244640095 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7002251254185872271, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
-  m_PrefabInstance: {fileID: 804950216}
+  m_PrefabInstance: {fileID: 244640092}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &804950220
+--- !u!114 &244640096
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 804950218}
+  m_GameObject: {fileID: 244640094}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1b6d5d0f8e0e4c24bf9f9f0b3a7b27f5, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::RealYoloCamera
   listenPort: 5005
   packetTimeoutSeconds: 0.35
   showDebugOverlay: 1
---- !u!114 &804950221
+--- !u!114 &244640097
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 804950219}
+  m_GameObject: {fileID: 244640095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38d35665eda099b47bc76cdbb2346210, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DiagnosticLogger
+  enableLogging: 1
+  logEveryN: 1
+  maxRows: 2000
+  flushEveryNRows: 10
+  fileName: diagnostic_log.csv
+--- !u!114 &244640098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244640095}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cb404546863433ca5daca969a2e0651, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::GfsxRealRobotBridge
   rosIpAddress: 192.168.2.154
   rosPort: 10000
   dryRun: 1
-  enableMotorCommands: 1
+  enableMotorCommands: 0
   enableGripperCommands: 0
   maxLinearSpeed: 0.25
   maxAngularSpeed: 0.9
@@ -364,23 +359,26 @@ MonoBehaviour:
   emergencyStopLatched: 0
   ballCaptured: 0
   lastActionAgeSeconds: Infinity
+  requestedLinearX: 0
+  requestedAngularZ: 0
+  safetyStopped: 0
   poseEstimateX: 0
   poseEstimateY: 0
   poseEstimateZ: 0
   poseEstimateHeadingDegrees: 0
   poseEstimateLinearSpeed: 0
   poseEstimateAngularSpeed: 0
---- !u!114 &804950222
+--- !u!114 &244640099
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 804950219}
+  m_GameObject: {fileID: 244640095}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4f53c3abe5694cb7b6381cf9284be1d4, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::RealRobotSensors
   ultrasonicMaxDistanceMeters: 2
   freshnessTimeoutSeconds: 0.5
@@ -394,7 +392,7 @@ MonoBehaviour:
   lastSensorDataPacketTime: -Infinity
   lastPwmPacketTime: -Infinity
   lastGripperIrPacketTime: -Infinity
---- !u!1 &1830625105
+--- !u!1 &601572155
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -402,61 +400,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1830625107}
-  - component: {fileID: 1830625106}
-  m_Layer: 0
-  m_Name: ROSConnectionPrefab(Clone)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1830625106
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1830625105}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7acef0b79454c9b4dae3f8139bc4ba77, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Robotics.ROSTCPConnector::Unity.Robotics.ROSTCPConnector.ROSConnection
-  m_RosIPAddress: 192.168.2.154
-  m_RosPort: 10000
-  m_ConnectOnStart: 0
-  m_KeepaliveTime: 1
-  m_NetworkTimeoutSeconds: 2
-  m_SleepTimeSeconds: 0.01
-  m_ShowHUD: 1
-  m_TFTopics: []
-  listenForTFMessages: 0
---- !u!4 &1830625107
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1830625105}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1927671016
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1927671017}
-  - component: {fileID: 1927671018}
+  - component: {fileID: 601572156}
+  - component: {fileID: 601572157}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -464,28 +409,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1927671017
+--- !u!4 &601572156
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1927671016}
+  m_GameObject: {fileID: 601572155}
   serializedVersion: 2
   m_LocalRotation: {x: 0.107871585, y: -0.34938362, z: 0.040531144, w: 0.9298667}
   m_LocalPosition: {x: 1.8000007, y: 1.8, z: -3.2000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 240824310}
+  m_Father: {fileID: 1709594865}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!20 &1927671018
+--- !u!20 &601572157
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1927671016}
+  m_GameObject: {fileID: 601572155}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 1
@@ -530,9 +475,95 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
+--- !u!1 &1427622744
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1427622746}
+  - component: {fileID: 1427622745}
+  m_Layer: 0
+  m_Name: ROSConnectionPrefab(Clone)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1427622745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1427622744}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7acef0b79454c9b4dae3f8139bc4ba77, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Unity.Robotics.ROSTCPConnector::Unity.Robotics.ROSTCPConnector.ROSConnection
+  m_RosIPAddress: 192.168.2.154
+  m_RosPort: 10000
+  m_ConnectOnStart: 0
+  m_KeepaliveTime: 1
+  m_NetworkTimeoutSeconds: 2
+  m_SleepTimeSeconds: 0.01
+  m_ShowHUD: 1
+  m_TFTopics: []
+  listenForTFMessages: 0
+--- !u!4 &1427622746
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1427622744}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1709594864
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1709594865}
+  m_Layer: 0
+  m_Name: RealRobotEnvironment
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1709594865
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1709594864}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 244640093}
+  - {fileID: 601572156}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 240824310}
-  - {fileID: 1830625107}
+  - {fileID: 1709594865}
+  - {fileID: 1427622746}

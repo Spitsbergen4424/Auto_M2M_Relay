@@ -63,6 +63,9 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     [SerializeField] private bool emergencyStopLatched;
     [SerializeField] private bool ballCaptured;
     [SerializeField] private float lastActionAgeSeconds = float.PositiveInfinity;
+    [SerializeField] private float requestedLinearX;
+    [SerializeField] private float requestedAngularZ;
+    [SerializeField] private bool safetyStopped;
     [SerializeField] private float poseEstimateX;
     [SerializeField] private float poseEstimateY;
     [SerializeField] private float poseEstimateZ;
@@ -104,8 +107,17 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     public int RosPort => rosPort;
     public float LastSensorPacketAge => lastSensorPacketAgeSeconds;
     public float LastYoloPacketAge => lastYoloPacketAgeSeconds;
+    public float LastActionAgeSeconds => lastActionAgeSeconds;
+    public float LastActionAgeMilliseconds => AgeToMilliseconds(lastActionAgeSeconds);
     public Vector3 LastPpoContinuousActions => lastPpoContinuousActions;
     public int LastPpoGripperCommand => lastPpoGripperCommand;
+    public float RequestedLinearX => requestedLinearX;
+    public float RequestedAngularZ => requestedAngularZ;
+    public float SentLinearX => lastSentLinearX;
+    public float SentAngularZ => lastSentAngularZ;
+    public bool SafetyStopped => safetyStopped;
+    public bool EmergencyStop => emergencyStopLatched;
+    public bool MotorCommandsEnabled => enableMotorCommands;
 
     public void ConfigureRealMode(string ipAddress, int port, bool dryRunEnabled, bool motorCommandsEnabled,
         float linearSpeed, float angularSpeed, float publishHzValue, bool invertSteeringValue,
@@ -129,6 +141,9 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         lastSentCameraPan = 0f;
         lastSentGripperCommand = 0;
         lastActionTime = float.NegativeInfinity;
+        requestedLinearX = 0f;
+        requestedAngularZ = 0f;
+        safetyStopped = false;
         ballCaptured = false;
         gripperIrActiveSince = float.NegativeInfinity;
         motorControlWasAllowed = false;
@@ -283,9 +298,10 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     }
 
     [ContextMenu("Emergency Stop")]
-    public void EmergencyStop()
+    public void TriggerEmergencyStop()
     {
         emergencyStopLatched = true;
+        RefreshCommandDiagnostics();
         PublishZeroTwistAfterArming();
     }
 
@@ -293,6 +309,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     public void ClearEmergencyStop()
     {
         emergencyStopLatched = false;
+        RefreshCommandDiagnostics();
     }
 
     [ContextMenu("Reset Captured Ball State")]
@@ -300,6 +317,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
     {
         ballCaptured = false;
         gripperIrActiveSince = float.NegativeInfinity;
+        RefreshCommandDiagnostics();
     }
 
     private void CacheReferences()
@@ -389,6 +407,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         lastPpoContinuousActions = new Vector3(command.Gas, command.Steer, command.CameraPan);
         lastPpoGripperCommand = command.GripperCommand;
         lastActionTime = Time.unscaledTime;
+        RefreshCommandDiagnostics();
     }
 
     private void OnSensorData(QuaternionMsg message)
@@ -426,6 +445,8 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
 
     private void PublishLatestCommands()
     {
+        RefreshCommandDiagnostics();
+
         if (!IsMotorCommandAllowed())
         {
             PublishZeroTwistAfterArming();
@@ -438,25 +459,8 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
             return;
         }
 
-        bool safetyStopped = false;
-        float linearX = MapEffectiveCommand(lastPpoContinuousActions.x, maxLinearSpeed,
-            minimumEffectiveLinearSpeed, actionDeadband);
-        float angularZ = MapEffectiveCommand(lastPpoContinuousActions.y, maxAngularSpeed,
-            minimumEffectiveAngularSpeed, actionDeadband);
-        if (invertSteering)
-        {
-            angularZ = -angularZ;
-        }
-
-        if (realRobotSensors != null && realRobotSensors.IsSensorDataFresh && linearX > 0f &&
-            realRobotSensors.UltrasonicMeters < safetyStopDistanceMeters)
-        {
-            linearX = 0f;
-            safetyStopped = true;
-        }
-
         float publishYaw = robotBrain != null ? robotBrain.NormalizedCameraYaw : 0f;
-        PublishTwist(linearX, angularZ);
+        PublishTwist(lastSentLinearX, lastSentAngularZ);
         PublishCameraPan(publishYaw);
 
         if (sendPrepareGripperOnce)
@@ -465,7 +469,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
             sendPrepareGripperOnce = false;
         }
 
-        EstimateActualChassisMotion(linearX, angularZ, out float estimatedLinear, out float estimatedAngular);
+        EstimateActualChassisMotion(lastSentLinearX, lastSentAngularZ, out float estimatedLinear, out float estimatedAngular);
         IntegratePoseEstimate(estimatedLinear, estimatedAngular);
         rosState = safetyStopped
             ? BuildState("Safety stop", realRobotSensors != null
@@ -536,6 +540,7 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
                 new TwistMsg(new Vector3Msg(0f, 0f, 0f), new Vector3Msg(0f, 0f, 0f)));
             lastSentLinearX = 0f;
             lastSentAngularZ = 0f;
+            safetyStopped = false;
             poseEstimateLinearSpeed = 0f;
             poseEstimateAngularSpeed = 0f;
             lastPoseUpdateTime = Time.unscaledTime;
@@ -652,6 +657,41 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         }
     }
 
+    private void RefreshCommandDiagnostics()
+    {
+        requestedLinearX = MapEffectiveCommand(lastPpoContinuousActions.x, maxLinearSpeed,
+            minimumEffectiveLinearSpeed, actionDeadband);
+        requestedAngularZ = MapEffectiveCommand(lastPpoContinuousActions.y, maxAngularSpeed,
+            minimumEffectiveAngularSpeed, actionDeadband);
+        if (invertSteering)
+        {
+            requestedAngularZ = -requestedAngularZ;
+        }
+
+        bool commandAllowed = IsMotorCommandAllowed();
+        bool blockedByFreshness = ShouldStopForStaleData();
+        bool blockedByUltrasonic = false;
+
+        if (realRobotSensors != null && realRobotSensors.IsSensorDataFresh && requestedLinearX > 0f &&
+            realRobotSensors.UltrasonicMeters < safetyStopDistanceMeters)
+        {
+            blockedByUltrasonic = true;
+        }
+
+        safetyStopped = commandAllowed && (blockedByFreshness || blockedByUltrasonic);
+
+        if (!commandAllowed || emergencyStopLatched || blockedByFreshness)
+        {
+            lastSentLinearX = 0f;
+            lastSentAngularZ = 0f;
+        }
+        else
+        {
+            lastSentLinearX = blockedByUltrasonic ? 0f : requestedLinearX;
+            lastSentAngularZ = requestedAngularZ;
+        }
+    }
+
     public static float MapEffectiveCommand(float normalizedAction, float maximumMagnitude,
         float minimumEffectiveMagnitude, float deadband)
     {
@@ -697,6 +737,13 @@ public sealed class GfsxRealRobotBridge : MonoBehaviour, IRobotPoseSource, IRobo
         return float.IsNegativeInfinity(timestamp)
             ? float.PositiveInfinity
             : Time.unscaledTime - timestamp;
+    }
+
+    private static float AgeToMilliseconds(float ageSeconds)
+    {
+        return float.IsNegativeInfinity(ageSeconds) || float.IsNaN(ageSeconds) || float.IsInfinity(ageSeconds)
+            ? -1f
+            : ageSeconds * 1000f;
     }
 
     private string BuildState(string state, string reason)
