@@ -1,0 +1,23 @@
+model:
+  path: "models/best_detect.pt"
+
+camera:
+  source: 0
+  reconnect_seconds: 1.0
+
+udp:
+  host: "127.0.0.1"
+  port: 5005
+
+vision:
+  target_class_id: 0
+  confidence: 0.25
+  image_size: 416
+  device: "cpu"
+
+distance:
+  far_bbox_height_ratio: 0.04
+  near_bbox_height_ratio: 0.55
+
+display:
+  preview: true

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
@@ -5,15 +6,18 @@ using Unity.MLAgents.Policies;
 using Unity.MLAgents.Sensors;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Random = UnityEngine.Random;
 
-[RequireComponent(typeof(Rigidbody), typeof(TrackController), typeof(VirtualSensors))]
+[RequireComponent(typeof(Rigidbody), typeof(TrackController))]
 public sealed class RobotBrain : Agent
 {
     [Header("Robot subsystems")]
     [SerializeField] private TrackController trackController;
     [SerializeField] private VirtualSensors virtualSensors;
+    [SerializeField] private MonoBehaviour sensorSourceBehaviour;
+    [SerializeField] private MonoBehaviour poseSourceBehaviour;
     [SerializeField] private GripperController gripperController;
-    [SerializeField] private SimulatedYoloCamera yoloCamera;
+    [SerializeField] private YoloVisionSource yoloCamera;
     [SerializeField] private Transform cameraPivot;
     [SerializeField] private Transform targetBall;
 
@@ -58,10 +62,26 @@ public sealed class RobotBrain : Agent
     private int episodeStationarySpinSteps;
     private int episodeStuckEvents;
     private int episodeSearchCells;
+    private bool externalActuationEnabled;
+
+    public event Action<RobotActionCommand> ActionComputed;
+
+    public MonoBehaviour SensorSource => sensorSourceBehaviour;
+    public MonoBehaviour PoseSource => poseSourceBehaviour;
+    public bool ExternalActuationEnabled => externalActuationEnabled;
+    public RobotActionCommand LastAction { get; private set; }
+    public float NormalizedCameraYaw => cameraServoLimit > 0f
+        ? Mathf.Clamp(cameraYaw / cameraServoLimit, -1f, 1f)
+        : 0f;
 
     private void Update()
     {
         if (!IsManualControl())
+        {
+            return;
+        }
+
+        if (externalActuationEnabled)
         {
             return;
         }
@@ -94,6 +114,11 @@ public sealed class RobotBrain : Agent
         body = GetComponent<Rigidbody>();
         trackController ??= GetComponent<TrackController>();
         virtualSensors ??= GetComponent<VirtualSensors>();
+        if (sensorSourceBehaviour == null)
+        {
+            sensorSourceBehaviour = virtualSensors;
+        }
+
         gripperController ??= GetComponent<GripperController>();
         obstacleRandomizer = GetComponentInParent<ArenaObstacleRandomizer>();
         if (targetBall != null)
@@ -113,14 +138,45 @@ public sealed class RobotBrain : Agent
     }
 
     public void Configure(TrackController tracks, VirtualSensors sensors, GripperController gripper,
-        SimulatedYoloCamera yolo, Transform servoPivot, Transform ball)
+        YoloVisionSource yolo, Transform servoPivot, Transform ball)
+    {
+        Configure(tracks, sensors, null, gripper, yolo, servoPivot, ball);
+    }
+
+    public void Configure(TrackController tracks, MonoBehaviour sensorSource, MonoBehaviour poseSource,
+        GripperController gripper, YoloVisionSource yolo, Transform servoPivot, Transform ball)
     {
         trackController = tracks;
-        virtualSensors = sensors;
+        sensorSourceBehaviour = sensorSource;
+        poseSourceBehaviour = poseSource;
         gripperController = gripper;
         yoloCamera = yolo;
         cameraPivot = servoPivot;
         targetBall = ball;
+    }
+
+    public void SetSensorSource(MonoBehaviour source)
+    {
+        sensorSourceBehaviour = source;
+    }
+
+    public void SetPoseSource(MonoBehaviour source)
+    {
+        poseSourceBehaviour = source;
+    }
+
+    public void SetVisionSource(YoloVisionSource yolo)
+    {
+        yoloCamera = yolo;
+    }
+
+    public void SetExternalActuationEnabled(bool enabled)
+    {
+        externalActuationEnabled = enabled;
+        if (enabled)
+        {
+            trackController?.Stop();
+        }
     }
 
     public override void OnEpisodeBegin()
@@ -132,8 +188,26 @@ public sealed class RobotBrain : Agent
 
         gripperController?.Release();
         trackController?.Stop();
-        body.linearVelocity = Vector3.zero;
-        body.angularVelocity = Vector3.zero;
+        if (body != null && !body.isKinematic)
+        {
+            body.linearVelocity = Vector3.zero;
+            body.angularVelocity = Vector3.zero;
+        }
+
+        // A physical robot is not teleported back to the start when an ML-Agents
+        // episode restarts. Real mode is a continuous inference mission; the pose
+        // and capture latches are reset only by explicit operator actions.
+        if (externalActuationEnabled)
+        {
+            episodeRunning = false;
+            return;
+        }
+
+        if (poseSourceBehaviour is IRobotPoseSource poseSource)
+        {
+            poseSource.ResetPoseEstimate();
+        }
+
         transform.SetPositionAndRotation(robotStartPosition, robotStartRotation);
 
         cameraYaw = 0f;
@@ -182,7 +256,7 @@ public sealed class RobotBrain : Agent
         episodeStartTime = Time.time;
         episodeTravelDistance = 0f;
         episodeInitialDistance = previousDistance;
-        previousTravelPosition = transform.position;
+        previousTravelPosition = GetObservedWorldPosition();
         episodeCollisionCount = 0;
         visitedCells.Clear();
         initialScanSectors.Clear();
@@ -197,7 +271,7 @@ public sealed class RobotBrain : Agent
         hasVisualRewardBaseline = false;
         lastBallVisibleTime = episodeStartTime;
         searchWindowStartTime = episodeStartTime;
-        searchWindowStartPosition = transform.position;
+        searchWindowStartPosition = GetObservedWorldPosition();
         episodeStationarySpinSteps = 0;
         episodeStuckEvents = 0;
         episodeSearchCells = 0;
@@ -205,31 +279,32 @@ public sealed class RobotBrain : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        float ultrasonic = virtualSensors != null ? virtualSensors.UltrasonicNormalized : 1f;
-        float leftIr = virtualSensors != null ? virtualSensors.LeftIR : 0f;
-        float rightIr = virtualSensors != null ? virtualSensors.RightIR : 0f;
-        float gripperIr = virtualSensors != null ? virtualSensors.GripperIR : 0f;
+        IRobotSensorSource source = GetSensorSource();
+        float ultrasonic = source != null ? source.UltrasonicNormalized : 1f;
+        float leftIr = source != null ? source.LeftIr : 0f;
+        float rightIr = source != null ? source.RightIr : 0f;
+        float gripperIr = source != null ? source.GripperIr : 0f;
         bool visible = yoloCamera != null && yoloCamera.IsVisible;
+        Vector3 relativePosition = GetObservedRelativePosition();
+        float headingDegrees = GetObservedHeadingDeltaDegrees();
+        float linearSpeed = GetObservedLinearSpeed();
+        float maxLinearSpeed = GetObservedMaxLinearSpeed();
 
-        sensor.AddObservation(ultrasonic);                                             // 1
-        sensor.AddObservation(leftIr);                                                // 2
-        sensor.AddObservation(rightIr);                                               // 3
-        sensor.AddObservation(gripperIr);                                             // 4
-        sensor.AddObservation(visible ? yoloCamera.HorizontalOffset : 0f);             // 5
-        sensor.AddObservation(visible ? yoloCamera.NormalizedDistance : 1f);           // 6
-        sensor.AddObservation(yoloCamera != null ? yoloCamera.LastKnownDirection : 0f);// 7
-        sensor.AddObservation(visible ? 1f : 0f);                                      // 8
-        sensor.AddObservation(cameraServoLimit > 0f ? cameraYaw / cameraServoLimit : 0f);// 9
-        sensor.AddObservation(gripperController != null && gripperController.HasBall ? 1f : 0f);// 10
-        Vector3 relative = transform.position - robotStartPosition;
-        sensor.AddObservation(Mathf.Clamp(relative.x / arenaRadius, -1f, 1f));          // 11
-        sensor.AddObservation(Mathf.Clamp(relative.z / arenaRadius, -1f, 1f));          // 12
-        sensor.AddObservation(Mathf.DeltaAngle(robotStartRotation.eulerAngles.y,
-            transform.eulerAngles.y) / 180f);                                         // 13
-        float maxSpeed = trackController != null ? trackController.MaxLinearSpeed : 1f;
-        sensor.AddObservation(maxSpeed > 0f
-            ? Mathf.Clamp01(body.linearVelocity.magnitude / maxSpeed) : 0f);            // 14
-        sensor.AddObservation(yoloCamera != null ? Mathf.Clamp01(yoloCamera.TimeSinceDetection / 5f) : 1f);// 15
+        sensor.AddObservation(ultrasonic);                                                   // 1
+        sensor.AddObservation(leftIr);                                                      // 2
+        sensor.AddObservation(rightIr);                                                     // 3
+        sensor.AddObservation(gripperIr);                                                   // 4
+        sensor.AddObservation(visible ? yoloCamera.HorizontalOffset : 0f);                   // 5
+        sensor.AddObservation(visible ? yoloCamera.NormalizedDistance : 1f);                 // 6
+        sensor.AddObservation(yoloCamera != null ? yoloCamera.LastKnownDirection : 0f);      // 7
+        sensor.AddObservation(visible ? 1f : 0f);                                            // 8
+        sensor.AddObservation(NormalizedCameraYaw);                                          // 9
+        sensor.AddObservation(HasCapturedBall() ? 1f : 0f);                                  // 10
+        sensor.AddObservation(Mathf.Clamp(relativePosition.x / arenaRadius, -1f, 1f));       // 11
+        sensor.AddObservation(Mathf.Clamp(relativePosition.z / arenaRadius, -1f, 1f));       // 12
+        sensor.AddObservation(headingDegrees / 180f);                                        // 13
+        sensor.AddObservation(maxLinearSpeed > 0f ? Mathf.Clamp01(Mathf.Abs(linearSpeed) / maxLinearSpeed) : 0f); // 14
+        sensor.AddObservation(yoloCamera != null ? Mathf.Clamp01(yoloCamera.TimeSinceDetection / 5f) : 1f);        // 15
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -237,15 +312,22 @@ public sealed class RobotBrain : Agent
         float gas = Mathf.Clamp(actions.ContinuousActions[0], -1f, 1f);
         float steer = Mathf.Clamp(actions.ContinuousActions[1], -1f, 1f);
         cameraTurnCommand = Mathf.Clamp(actions.ContinuousActions[2], -1f, 1f);
-        if (!IsManualControl())
-        {
-            trackController.SetCommand(gas, steer);
+        int gripperCommand = actions.DiscreteActions.Length > 0 ? actions.DiscreteActions[0] : 0;
+        // The real camera ROS API accepts an absolute pan position, while the
+        // policy action is a turn rate. Publish the integrated camera state.
+        LastAction = new RobotActionCommand(gas, steer, NormalizedCameraYaw, gripperCommand);
+        ActionComputed?.Invoke(LastAction);
 
-            int gripperCommand = actions.DiscreteActions.Length > 0 ? actions.DiscreteActions[0] : 0;
+        if (!externalActuationEnabled && !IsManualControl())
+        {
+            trackController?.SetCommand(gas, steer);
             gripperController?.ApplyCommand(gripperCommand);
         }
 
-        CalculateRewards(gas, steer);
+        if (!externalActuationEnabled)
+        {
+            CalculateRewards(gas, steer);
+        }
     }
 
     private bool IsManualControl()
@@ -256,7 +338,8 @@ public sealed class RobotBrain : Agent
 
     private void CalculateRewards(float gas, float steer)
     {
-        float distance = DistanceToBall();
+        Vector3 observedPosition = GetObservedWorldPosition();
+        float distance = DistanceToBall(observedPosition);
         float distanceDelta = previousDistance - distance;
         bool visible = yoloCamera != null && yoloCamera.IsVisible;
 
@@ -266,7 +349,7 @@ public sealed class RobotBrain : Agent
         {
             lastBallVisibleTime = Time.time;
             searchWindowStartTime = Time.time;
-            searchWindowStartPosition = transform.position;
+            searchWindowStartPosition = observedPosition;
             AddReward(distanceDelta * 0.6f);
             if (!ballEverSeen)
             {
@@ -277,7 +360,7 @@ public sealed class RobotBrain : Agent
         }
         else
         {
-            Vector3 relative = transform.position - robotStartPosition;
+            Vector3 relative = observedPosition - robotStartPosition;
             var cell = new Vector2Int(
                 Mathf.RoundToInt(relative.x / ActiveSearchRewardShaping.SearchCellSize),
                 Mathf.RoundToInt(relative.z / ActiveSearchRewardShaping.SearchCellSize));
@@ -288,9 +371,8 @@ public sealed class RobotBrain : Agent
             }
 
             float timeWithoutBall = Time.time - lastBallVisibleTime;
-            Vector3 planarVelocity = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
-            bool moving = planarVelocity.magnitude >= ActiveSearchRewardShaping.MinimumMovingSpeed;
-            bool spinning = body.angularVelocity.magnitude >= ActiveSearchRewardShaping.SpinAngularSpeed;
+            float planarSpeed = GetObservedLinearSpeedMagnitude();
+            bool moving = planarSpeed >= ActiveSearchRewardShaping.MinimumMovingSpeed;
             int cameraSector = yoloCamera != null ? yoloCamera.WorldViewSector : 0;
 
             if (timeWithoutBall <= ActiveSearchRewardShaping.InitialScanDuration &&
@@ -309,7 +391,7 @@ public sealed class RobotBrain : Agent
             }
 
             if (ActiveSearchRewardShaping.ShouldPenalizeStationarySpin(
-                    timeWithoutBall, planarVelocity.magnitude, body.angularVelocity.magnitude))
+                    timeWithoutBall, planarSpeed, Mathf.Abs(GetObservedAngularSpeed())))
             {
                 episodeStationarySpinSteps++;
                 AddReward(-ActiveSearchRewardShaping.StationarySpinPenalty);
@@ -318,7 +400,7 @@ public sealed class RobotBrain : Agent
             if (Time.time - searchWindowStartTime >= ActiveSearchRewardShaping.StuckWindowDuration)
             {
                 float displacement = Vector3.ProjectOnPlane(
-                    transform.position - searchWindowStartPosition, Vector3.up).magnitude;
+                    observedPosition - searchWindowStartPosition, Vector3.up).magnitude;
                 if (timeWithoutBall > ActiveSearchRewardShaping.InitialScanDuration &&
                     displacement < ActiveSearchRewardShaping.MinimumWindowDisplacement)
                 {
@@ -327,7 +409,7 @@ public sealed class RobotBrain : Agent
                 }
 
                 searchWindowStartTime = Time.time;
-                searchWindowStartPosition = transform.position;
+                searchWindowStartPosition = observedPosition;
             }
         }
 
@@ -343,7 +425,7 @@ public sealed class RobotBrain : Agent
 
         if (visible && targetBall != null)
         {
-            Vector3 toBall = Vector3.ProjectOnPlane(targetBall.position - transform.position, Vector3.up);
+            Vector3 toBall = Vector3.ProjectOnPlane(targetBall.position - observedPosition, Vector3.up);
             if (toBall.sqrMagnitude > 0.0001f)
             {
                 // The FBX nose points along local +X (transform.right).
@@ -361,15 +443,16 @@ public sealed class RobotBrain : Agent
             }
         }
 
-        if (virtualSensors != null)
+        IRobotSensorSource source = GetSensorSource();
+        if (source != null)
         {
-            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * 0.002f);
-            if (virtualSensors.UltrasonicNormalized < 0.08f)
+            AddReward(-(source.LeftIr + source.RightIr) * 0.002f);
+            if (source.UltrasonicNormalized < 0.08f)
             {
                 AddReward(-0.003f);
             }
 
-            if (!gripperReached && virtualSensors.GripperIR >= 1f)
+            if (!gripperReached && source.GripperIr >= 1f)
             {
                 gripperReached = true;
                 AddReward(0.5f);
@@ -390,8 +473,8 @@ public sealed class RobotBrain : Agent
                 EndEpisode();
             }
         }
-        else if ((transform.position - robotStartPosition).sqrMagnitude > arenaRadius * arenaRadius ||
-                 transform.position.y < robotStartPosition.y - 1f)
+        else if ((observedPosition - robotStartPosition).sqrMagnitude > arenaRadius * arenaRadius ||
+                 observedPosition.y < robotStartPosition.y - 1f)
         {
             AddReward(-2f);
             ReportEpisode(false);
@@ -401,7 +484,12 @@ public sealed class RobotBrain : Agent
 
     private float DistanceToBall()
     {
-        return targetBall != null ? Vector3.Distance(transform.position, targetBall.position) : arenaRadius;
+        return DistanceToBall(GetObservedWorldPosition());
+    }
+
+    private float DistanceToBall(Vector3 observedPosition)
+    {
+        return targetBall != null ? Vector3.Distance(observedPosition, targetBall.position) : arenaRadius;
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
@@ -426,6 +514,11 @@ public sealed class RobotBrain : Agent
         }
     }
 
+    public void SetActionSourceExternal(bool enabled)
+    {
+        externalActuationEnabled = enabled;
+    }
+
     private static float Axis(bool positive, bool negative)
     {
         return (positive ? 1f : 0f) - (negative ? 1f : 0f);
@@ -439,8 +532,9 @@ public sealed class RobotBrain : Agent
             return;
         }
 
-        episodeTravelDistance += Vector3.Distance(transform.position, previousTravelPosition);
-        previousTravelPosition = transform.position;
+        Vector3 currentPosition = GetObservedWorldPosition();
+        episodeTravelDistance += Vector3.Distance(currentPosition, previousTravelPosition);
+        previousTravelPosition = currentPosition;
     }
 
     private void UpdateCameraServo()
@@ -491,6 +585,107 @@ public sealed class RobotBrain : Agent
             episodeCollisionCount++;
             AddReward(-0.03f);
         }
+    }
+
+    private IRobotSensorSource GetSensorSource()
+    {
+        if (sensorSourceBehaviour is IRobotSensorSource source)
+        {
+            return source;
+        }
+
+        if (virtualSensors is IRobotSensorSource virtualSource)
+        {
+            return virtualSource;
+        }
+
+        return null;
+    }
+
+    private IRobotPoseSource GetPoseSource()
+    {
+        return poseSourceBehaviour as IRobotPoseSource;
+    }
+
+    private bool HasCapturedBall()
+    {
+        if (poseSourceBehaviour is IRobotCaptureSource captureSource)
+        {
+            return captureSource.HasCapturedBall;
+        }
+
+        return gripperController != null && gripperController.HasBall;
+    }
+
+    private Vector3 GetObservedWorldPosition()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return robotStartPosition + poseSource.RelativePositionMeters;
+        }
+
+        return transform.position;
+    }
+
+    private Vector3 GetObservedRelativePosition()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return poseSource.RelativePositionMeters;
+        }
+
+        return transform.position - robotStartPosition;
+    }
+
+    private float GetObservedHeadingDeltaDegrees()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return Mathf.DeltaAngle(0f, poseSource.HeadingDegrees);
+        }
+
+        return Mathf.DeltaAngle(robotStartRotation.eulerAngles.y, transform.eulerAngles.y);
+    }
+
+    private float GetObservedLinearSpeed()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return poseSource.LinearSpeedMetersPerSecond;
+        }
+
+        return body != null ? body.linearVelocity.magnitude : 0f;
+    }
+
+    private float GetObservedAngularSpeed()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return poseSource.AngularSpeedRadiansPerSecond;
+        }
+
+        return body != null ? body.angularVelocity.magnitude : 0f;
+    }
+
+    private float GetObservedLinearSpeedMagnitude()
+    {
+        return Mathf.Abs(GetObservedLinearSpeed());
+    }
+
+    private float GetObservedMaxLinearSpeed()
+    {
+        IRobotPoseSource poseSource = GetPoseSource();
+        if (poseSource != null && poseSource.HasPoseEstimate)
+        {
+            return poseSource.MaxLinearSpeedMetersPerSecond;
+        }
+
+        return trackController != null ? trackController.MaxLinearSpeed : 1f;
     }
 
     private static bool IsObstacleOrWall(Transform item)

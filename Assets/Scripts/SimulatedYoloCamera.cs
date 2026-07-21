@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public sealed class SimulatedYoloCamera : MonoBehaviour
+public sealed class SimulatedYoloCamera : YoloVisionSource
 {
     [SerializeField] private Camera sensorCamera;
     [SerializeField] private Transform targetBall;
@@ -9,12 +9,12 @@ public sealed class SimulatedYoloCamera : MonoBehaviour
     [SerializeField] private LayerMask visibilityMask = ~0;
     [SerializeField] private bool showDebugOverlay = true;
 
-    public bool IsVisible { get; private set; }
-    public float HorizontalOffset { get; private set; }
-    public float NormalizedDistance { get; private set; } = 1f;
-    public float LastKnownDirection { get; private set; }
-    public float TimeSinceDetection { get; private set; }
-    public int WorldViewSector
+    public override bool IsVisible { get; protected set; }
+    public override float HorizontalOffset { get; protected set; }
+    public override float NormalizedDistance { get; protected set; } = 1f;
+    public override float LastKnownDirection { get; protected set; }
+    public override float TimeSinceDetection { get; protected set; }
+    public override int WorldViewSector
     {
         get
         {

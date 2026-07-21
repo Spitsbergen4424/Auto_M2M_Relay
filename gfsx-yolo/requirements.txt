@@ -1,0 +1,3 @@
+ultralytics==8.4.90
+opencv-python>=4.9,<5
+PyYAML>=6,<7

@@ -138,6 +138,8 @@ public static class P2P3ProjectSetup
         SimulatedYoloCamera yolo = GetOrAdd<SimulatedYoloCamera>(cameraObject);
         yolo.Configure(robotCamera, ball.transform);
         yolo.ConfigureScale(ScaleMultiplier);
+        RealYoloCamera realYolo = GetOrAdd<RealYoloCamera>(cameraObject);
+        realYolo.enabled = false;
         RobotCameraViewport viewport = GetOrAdd<RobotCameraViewport>(cameraObject);
         viewport.Configure(0.18f, 0.02f);
 
