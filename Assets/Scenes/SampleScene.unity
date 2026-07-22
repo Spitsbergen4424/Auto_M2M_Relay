@@ -2279,7 +2279,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 17188043}
   gripperController: {fileID: 17188042}
   yoloCamera: {fileID: 1495310926}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 215049211}
   targetBall: {fileID: 359666334}
@@ -2873,13 +2872,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 23610682}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 187111311}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &23610684
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7045,7 +7044,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 66034456}
   gripperController: {fileID: 66034455}
   yoloCamera: {fileID: 1970510817}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1812431576}
   targetBall: {fileID: 214913352}
@@ -7528,7 +7526,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 73464212}
   gripperController: {fileID: 73464211}
   yoloCamera: {fileID: 584081785}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 258098912}
   targetBall: {fileID: 1054595342}
@@ -8020,7 +8017,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 79261069}
   gripperController: {fileID: 79261068}
   yoloCamera: {fileID: 1922758464}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1849425505}
   targetBall: {fileID: 963717871}
@@ -14362,7 +14358,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 148220808}
   gripperController: {fileID: 148220807}
   yoloCamera: {fileID: 787962758}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 165272913}
   targetBall: {fileID: 1294673863}
@@ -16715,13 +16710,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 180478031}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1263785153}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &180478033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17561,7 +17556,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 187090119}
   gripperController: {fileID: 187090118}
   yoloCamera: {fileID: 1534313396}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 2066672100}
   targetBall: {fileID: 1241880962}
@@ -20984,14 +20978,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 221722157}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.8588693, y: 3.1978598, z: -0.31307358}
+  m_LocalRotation: {x: -0.04941406, y: -0.005079119, z: 0.1077563, w: 0.99293554}
+  m_LocalPosition: {x: 3.9254227, y: 3.9919581, z: -0.17309359}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2147096110}
   m_Father: {fileID: 462045112}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -5.568, y: -1.194, z: 12.445}
 --- !u!1 &222944469
 GameObject:
   m_ObjectHideFlags: 0
@@ -24104,13 +24098,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 262156211}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 946395304}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &262156213
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -25467,7 +25461,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 276326719}
   gripperController: {fileID: 276326718}
   yoloCamera: {fileID: 1301036075}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 536143470}
   targetBall: {fileID: 98634321}
@@ -26421,7 +26414,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 287146185}
   gripperController: {fileID: 287146184}
   yoloCamera: {fileID: 1352320868}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 227049043}
   targetBall: {fileID: 491981228}
@@ -27896,13 +27888,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 297213505}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 765415585}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &297213507
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28922,13 +28914,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 313459430}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 984286975}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &313459432
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34390,7 +34382,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 380151282}
   gripperController: {fileID: 380151281}
   yoloCamera: {fileID: 712298237}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1959813724}
   targetBall: {fileID: 1094847846}
@@ -34655,7 +34646,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 381170537}
   gripperController: {fileID: 381170536}
   yoloCamera: {fileID: 262156215}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 946395304}
   targetBall: {fileID: 1314958651}
@@ -38420,7 +38410,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 422406197}
   gripperController: {fileID: 422406196}
   yoloCamera: {fileID: 1939252745}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 2057028110}
   targetBall: {fileID: 1165503553}
@@ -41498,6 +41487,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: 123 (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 2212213354466439421, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6572661600189054211, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -42097,7 +42090,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 455929615}
   gripperController: {fileID: 455929614}
   yoloCamera: {fileID: 2105821123}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 196193515}
   targetBall: {fileID: 296507106}
@@ -42362,7 +42354,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 457842247}
   gripperController: {fileID: 457842246}
   yoloCamera: {fileID: 1644015931}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 876944789}
   targetBall: {fileID: 774354479}
@@ -43466,7 +43457,7 @@ MonoBehaviour:
     VectorActionDescriptions: []
     VectorActionSpaceType: 0
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 5022602860645237092, guid: 4f9e4f8049f457e41b98179362332b0a, type: 3}
+  m_Model: {fileID: 5022602860645237092, guid: 8f74b898e01c99efdaae80d459757ea7, type: 3}
   m_InferenceDevice: 0
   m_BehaviorType: 2
   m_BehaviorName: GFSX_Brain
@@ -46064,13 +46055,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 489569933}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1191730028}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &489569935
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48354,13 +48345,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 511047737}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 488553511}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &511047739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -52752,7 +52743,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 576850486}
   gripperController: {fileID: 576850485}
   yoloCamera: {fileID: 1584922071}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 291938716}
   targetBall: {fileID: 1268601600}
@@ -53494,13 +53484,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 584081781}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 258098912}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &584081783
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55043,7 +55033,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 611023467}
   gripperController: {fileID: 611023466}
   yoloCamera: {fileID: 1192041746}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1931830593}
   targetBall: {fileID: 1203799705}
@@ -58135,13 +58124,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 659402415}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1631962853}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &659402417
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59977,7 +59966,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 680481061}
   gripperController: {fileID: 680481060}
   yoloCamera: {fileID: 511047741}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 488553511}
   targetBall: {fileID: 744775018}
@@ -60304,13 +60292,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 686432968}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2126088480}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &686432970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -62241,13 +62229,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 712298233}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1959813724}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &712298235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -64824,7 +64812,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 735651169}
   gripperController: {fileID: 735651168}
   yoloCamera: {fileID: 1332470841}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 564620735}
   targetBall: {fileID: 771592092}
@@ -68341,7 +68328,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 781303324}
   gripperController: {fileID: 781303323}
   yoloCamera: {fileID: 1064513339}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 294405140}
   targetBall: {fileID: 1183189977}
@@ -69390,13 +69376,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 787962754}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 165272913}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &787962756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -70067,7 +70053,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 804859587}
   gripperController: {fileID: 804859586}
   yoloCamera: {fileID: 1448051899}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1685762927}
   targetBall: {fileID: 100997927}
@@ -73723,7 +73708,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 842566281}
   gripperController: {fileID: 842566280}
   yoloCamera: {fileID: 297213509}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 765415585}
   targetBall: {fileID: 342878132}
@@ -74635,7 +74619,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 848906804}
   gripperController: {fileID: 848906803}
   yoloCamera: {fileID: 1652793158}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 829630550}
   targetBall: {fileID: 244399651}
@@ -75944,7 +75927,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 864710174}
   gripperController: {fileID: 864710173}
   yoloCamera: {fileID: 23610686}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 187111311}
   targetBall: {fileID: 1380393785}
@@ -81881,7 +81863,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 936431564}
   gripperController: {fileID: 936431563}
   yoloCamera: {fileID: 686432972}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 2126088480}
   targetBall: {fileID: 430360275}
@@ -85857,13 +85838,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 985613814}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1542277140}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &985613816
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -86081,7 +86062,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 985935707}
   gripperController: {fileID: 985935706}
   yoloCamera: {fileID: 1829552407}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 129968773}
   targetBall: {fileID: 1659000569}
@@ -91456,13 +91436,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1057117820}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 332281041}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1057117822
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -91849,13 +91829,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1064513335}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 294405140}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1064513337
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92857,7 +92837,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1070871738}
   gripperController: {fileID: 1070871737}
   yoloCamera: {fileID: 313459434}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 984286975}
   targetBall: {fileID: 2045509017}
@@ -97676,13 +97655,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1140722472}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 781775520}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1140722474
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100887,7 +100866,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1180850363}
   gripperController: {fileID: 1180850362}
   yoloCamera: {fileID: 985613818}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1542277140}
   targetBall: {fileID: 1991342547}
@@ -101831,13 +101809,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1192041742}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1931830593}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1192041744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107389,13 +107367,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1263916300}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1601902196}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1263916302
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -108896,7 +108874,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1276515937}
   gripperController: {fileID: 1276515936}
   yoloCamera: {fileID: 180478035}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1263785153}
   targetBall: {fileID: 449832026}
@@ -111084,13 +111061,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1301036071}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 536143470}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1301036073
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -111250,13 +111227,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1302116525}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 593281442}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1302116527
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -114101,13 +114078,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1332470837}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 564620735}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1332470839
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -115547,13 +115524,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1352320864}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 227049043}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1352320866
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -116105,7 +116082,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1357497779}
   gripperController: {fileID: 1357497778}
   yoloCamera: {fileID: 659402419}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1631962853}
   targetBall: {fileID: 1990624428}
@@ -118634,6 +118610,10 @@ PrefabInstance:
     - target: {fileID: 2212213354466439421, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Name
       value: 123
+      objectReference: {fileID: 0}
+    - target: {fileID: 2212213354466439421, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6572661600189054211, guid: 5030c6df3569faa4a916a917e66f6409, type: 3}
       propertyPath: m_Enabled
@@ -121711,13 +121691,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1431096411}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1617332414}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1431096413
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -123146,13 +123126,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1448051895}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1685762927}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1448051897
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -126178,13 +126158,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1495310922}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 215049211}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1495310924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -128309,13 +128289,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1534313392}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2066672100}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1534313394
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133112,13 +133092,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1584922067}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 291938716}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1584922069
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -133575,7 +133555,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1589915219}
   gripperController: {fileID: 1589915218}
   yoloCamera: {fileID: 489569937}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1191730028}
   targetBall: {fileID: 56559140}
@@ -136396,13 +136375,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1626689516}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 776916922}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1626689518
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -137450,13 +137429,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1644015927}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 876944789}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1644015929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138046,13 +138025,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1652793154}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 829630550}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1652793156
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -138890,13 +138869,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1662676597}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1184502781}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1662676599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -140819,13 +140798,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1683749990}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 546630134}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1683749992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -146634,7 +146613,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1750106048}
   gripperController: {fileID: 1750106047}
   yoloCamera: {fileID: 1140722476}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 781775520}
   targetBall: {fileID: 1212958539}
@@ -152346,13 +152324,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1829552403}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 129968773}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1829552405
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -153477,7 +153455,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1837727603}
   gripperController: {fileID: 1837727602}
   yoloCamera: {fileID: 1683749994}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 546630134}
   targetBall: {fileID: 2048845497}
@@ -154104,7 +154081,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1842050072}
   gripperController: {fileID: 1842050071}
   yoloCamera: {fileID: 1057117824}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 332281041}
   targetBall: {fileID: 1195671144}
@@ -154657,7 +154633,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1847910120}
   gripperController: {fileID: 1847910119}
   yoloCamera: {fileID: 1626689520}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 776916922}
   targetBall: {fileID: 322037936}
@@ -160276,13 +160251,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1922758460}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1849425505}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1922758462
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -161485,7 +161460,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 1931972193}
   gripperController: {fileID: 1931972192}
   yoloCamera: {fileID: 1302116529}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 593281442}
   targetBall: {fileID: 440764553}
@@ -161969,13 +161943,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1939252741}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2057028110}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1939252743
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -165106,13 +165080,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1970510813}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1812431576}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &1970510815
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -170954,7 +170928,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 2044248070}
   gripperController: {fileID: 2044248069}
   yoloCamera: {fileID: 1431096415}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1617332414}
   targetBall: {fileID: 811244933}
@@ -173948,7 +173921,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 2077139225}
   gripperController: {fileID: 2077139224}
   yoloCamera: {fileID: 1263916304}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1601902196}
   targetBall: {fileID: 1857359048}
@@ -174864,7 +174836,8 @@ GameObject:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
-  m_Component: []
+  m_Component:
+  - component: {fileID: 2100000101}
   m_Layer: 0
   m_Name: SimulationOnly
   m_TagString: Untagged
@@ -174872,6 +174845,21 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
+--- !u!4 &2100000101
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000100}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2103349973
 GameObject:
   m_ObjectHideFlags: 0
@@ -175272,13 +175260,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2105821119}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 196193515}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!114 &2105821121
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -175608,7 +175596,6 @@ MonoBehaviour:
   virtualSensors: {fileID: 2108125978}
   gripperController: {fileID: 2108125977}
   yoloCamera: {fileID: 1662676601}
-  rosBridge: {fileID: 0}
   diagnosticLogger: {fileID: 0}
   cameraPivot: {fileID: 1184502781}
   targetBall: {fileID: 397667395}
@@ -178764,13 +178751,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2147096109}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.23639101, y: 0.6708226, z: -0.16743656, w: 0.6827016}
+  m_LocalRotation: {x: 0.194905, y: 0.6797153, z: -0.1590672, w: 0.6889833}
   m_LocalPosition: {x: -3.2170138, y: 1.04142, z: 0.21810514}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 221722158}
-  m_LocalEulerAnglesHint: {x: 33.19, y: 90.806, z: 6.073}
+  m_LocalEulerAnglesHint: {x: 29, y: 90, z: 3}
 --- !u!20 &2147096111
 Camera:
   m_ObjectHideFlags: 0
@@ -178906,11 +178893,11 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 2100000101}
   - {fileID: 330585546}
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1296645521}
-  - {fileID: 2100000101}
   - {fileID: 370556455}
   - {fileID: 1392576543}
   - {fileID: 448727042}

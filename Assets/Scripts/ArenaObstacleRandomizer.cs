@@ -9,7 +9,7 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
     [SerializeField] private Transform robot;
     [SerializeField] private Transform targetBall;
     [SerializeField] private Transform obstacleContainer;
-    [SerializeField, Min(0)] private int minimumObstacleCount = 4;
+    // Pool size only; the per-episode obstacle count now comes from ArenaEpisodeSetup.
     [SerializeField, Min(1)] private int maximumObstacleCount = 7;
     [SerializeField] private float placementHalfExtent = 4.15f;
     [SerializeField] private float safeRadiusAroundRobot = 1.35f;
@@ -25,12 +25,15 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
     private Vector3 detourRightEntryLocal;
     private Vector3 detourRightExitLocal;
     private float detourHalfDepth;
-    private float detourSideClearance;
 
     public float CurrentDifficulty { get; private set; } = 1f;
     public bool RequiresDetour => CurrentDifficulty >= 0.55f && randomSeed % 2 == 0;
     public bool HasDetourLayout { get; private set; }
 
+    // Shortest walk-around distance from a world position to the (ground-truth)
+    // ball, routing through whichever free wall edge is nearer. Reward-only
+    // privileged geometry: the policy never sees this, it only feels the reward
+    // gradient. Lower potential = closer to being around the barrier.
     public bool TryGetDetourPathPotential(Vector3 worldPosition, out float potential)
     {
         potential = 0f;
@@ -47,6 +50,7 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
 
         if (longitudinal < -detourHalfDepth)
         {
+            // Still in front of the barrier: reach an edge, pass it, then the goal.
             float left = HorizontalDistance(current, detourLeftEntryLocal) +
                          HorizontalDistance(detourLeftEntryLocal, detourLeftExitLocal) +
                          HorizontalDistance(detourLeftExitLocal, goal);
@@ -57,42 +61,15 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         }
         else if (longitudinal <= detourHalfDepth)
         {
+            // Alongside the barrier: clear the near exit, then head to the goal.
             potential = Mathf.Min(
                 HorizontalDistance(current, detourLeftExitLocal) + HorizontalDistance(detourLeftExitLocal, goal),
                 HorizontalDistance(current, detourRightExitLocal) + HorizontalDistance(detourRightExitLocal, goal));
         }
         else
         {
+            // Past the barrier: a straight shot remains.
             potential = HorizontalDistance(current, goal);
-        }
-
-        return true;
-    }
-
-    public bool TryGetDetourStage(Vector3 worldPosition, out int stage)
-    {
-        stage = 0;
-        if (!HasDetourLayout || arena == null)
-        {
-            return false;
-        }
-
-        Vector3 current = arena.InverseTransformPoint(worldPosition);
-        current.y = 0f;
-        Vector3 fromCenter = current - detourCenterLocal;
-        float longitudinal = Vector3.Dot(fromCenter, detourDirectionLocal);
-        Vector3 perpendicular = new Vector3(-detourDirectionLocal.z, 0f, detourDirectionLocal.x);
-        float lateral = Mathf.Abs(Vector3.Dot(fromCenter, perpendicular));
-
-        // Stage 1 means that the robot has reached a navigable wall edge.
-        // Stage 2 means that it has actually passed the occluding barrier.
-        if (lateral >= detourSideClearance - 0.25f)
-        {
-            stage = 1;
-            if (longitudinal >= detourHalfDepth)
-            {
-                stage = 2;
-            }
         }
 
         return true;
@@ -107,7 +84,10 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         CacheObstacles();
     }
 
-    public void RandomizeLayout()
+    // The full episode setup comes from RobotBrain (single per-episode source:
+    // yaml scalar, staged curriculum, or the standalone default) so obstacle
+    // counts and barrier frequency always match the ball spawn of the episode.
+    public void RandomizeLayout(ArenaEpisodeSetup setup)
     {
         if (arena == null)
         {
@@ -120,28 +100,26 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         }
 
         EnsureObstaclePool();
-        CurrentDifficulty = Mathf.Clamp01(
-            Academy.Instance.EnvironmentParameters.GetWithDefault("arena_difficulty", 1f));
+        CurrentDifficulty = setup.NormalizedDifficulty;
         var random = new System.Random(unchecked(randomSeed * 7919 + generation++ * 104729));
-        int difficultyMaximum = Mathf.Clamp(Mathf.RoundToInt(maximumObstacleCount * CurrentDifficulty),
-            0, maximumObstacleCount);
-        int difficultyMinimum = CurrentDifficulty < 0.15f
-            ? 0
-            : Mathf.Clamp(Mathf.RoundToInt(minimumObstacleCount * CurrentDifficulty), 1, difficultyMaximum);
-        int count = difficultyMaximum > difficultyMinimum
-            ? random.Next(difficultyMinimum, difficultyMaximum + 1)
-            : difficultyMaximum;
+        int poolMaximum = Mathf.Clamp(setup.MaxObstacles, 0, obstacles.Count);
+        int poolMinimum = Mathf.Clamp(setup.MinObstacles, 0, poolMaximum);
+        int count = poolMaximum > poolMinimum
+            ? random.Next(poolMinimum, poolMaximum + 1)
+            : poolMaximum;
         var occupied = new List<Vector3>(count);
 
         Vector3 robotLocal = robot != null ? arena.InverseTransformPoint(robot.position) : Vector3.zero;
         Vector3 ballLocal = targetBall != null ? arena.InverseTransformPoint(targetBall.position) : new Vector3(0f, 0f, 2f);
         float floorTop = FindFloorTop();
-        float detourProbability = Academy.Instance.EnvironmentParameters.GetWithDefault(
+        // An explicit detour_probability environment parameter still overrides
+        // the per-stage value (used by evaluation configs).
+        float detourOverride = Academy.Instance.EnvironmentParameters.GetWithDefault(
             "detour_probability", -1f);
-        bool createDetour = detourProbability >= 0f
-            ? random.NextDouble() < Mathf.Clamp01(detourProbability)
-            : CurrentDifficulty >= 0.55f &&
-              random.NextDouble() < Mathf.Lerp(0.15f, 0.55f, CurrentDifficulty);
+        float barrierProbability = detourOverride >= 0f
+            ? Mathf.Clamp01(detourOverride)
+            : setup.DetourProbability;
+        bool createDetour = barrierProbability > 0f && random.NextDouble() < barrierProbability;
         if (createDetour)
         {
             count = Mathf.Max(1, count);
@@ -330,8 +308,9 @@ public sealed class ArenaObstacleRandomizer : MonoBehaviour
         barrier.localScale = new Vector3(barrierWidth, barrierHeight, barrierDepth);
         occupied.Add(new Vector3(position.x, barrierWidth * 0.55f + 0.35f, position.z));
 
+        // Navigation waypoints for the detour path potential: the two free edges
+        // of the wall, each with an entry (near side) and exit (far side) point.
         float sideClearance = barrierWidth * 0.5f + 0.75f;
-        detourSideClearance = sideClearance;
         detourHalfDepth = barrierDepth * 0.5f + 0.55f;
         detourDirectionLocal = direction;
         Vector3 flatCenter = new Vector3(position.x, 0f, position.z);

@@ -14,6 +14,9 @@ public static class ActiveSearchArenaEvaluator
     private const float DetectionDistance = 2f;
     private const float RobotClearance = 0.3f;
     private const float AssumedSearchSpeed = 0.5f;
+    // Behavioural assumption for arena scoring (how long a robot spends looking
+    // around); no longer a reward constant after the reward simplification.
+    private const float AssumedScanSeconds = 1.5f;
 
     private sealed class Result
     {
@@ -53,7 +56,8 @@ public static class ActiveSearchArenaEvaluator
                 ballPosition.y = ball.position.y;
                 ball.position = ballPosition;
 
-                randomizer.RandomizeLayout();
+                // Arena stress test always runs at worst-case obstacle density.
+                randomizer.RandomizeLayout(ArenaEpisodeSetup.FromScalar(1f));
                 Physics.SyncTransforms();
                 List<Bounds> obstacles = CollectObstacleBounds(randomizer.transform);
                 bool openVariant = arenaIndex % 10 == 0;
@@ -117,7 +121,7 @@ public static class ActiveSearchArenaEvaluator
         }
 
         float travelSeconds = distanceUntilDetection / AssumedSearchSpeed;
-        float initialScan = visibleAtStart ? 0f : ActiveSearchRewardShaping.InitialScanDuration;
+        float initialScan = visibleAtStart ? 0f : AssumedScanSeconds;
         return new Result
         {
             Kind = kind,
@@ -126,7 +130,7 @@ public static class ActiveSearchArenaEvaluator
             DistanceUntilDetection = distanceUntilDetection,
             ActiveSeconds = travelSeconds + initialScan,
             StopAndScanSeconds = travelSeconds + initialScan +
-                                 visitedCells * ActiveSearchRewardShaping.InitialScanDuration
+                                 visitedCells * AssumedScanSeconds
         };
     }
 

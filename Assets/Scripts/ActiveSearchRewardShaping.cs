@@ -1,35 +1,10 @@
-using UnityEngine;
-
 public static class ActiveSearchRewardShaping
 {
-    public const float InitialScanDuration = 1.5f;
+    // Blind-search coverage: one small reward per newly visited grid cell is the
+    // single exploration signal. Sector scans, moving viewpoints and spin
+    // penalties were removed in the reward simplification - degenerate
+    // behaviours (spinning in place, circling) are now cut off by the stuck
+    // terminal in RobotBrain instead of per-step micro-penalties.
     public const float SearchCellSize = 0.8f;
-    public const float MinimumMovingSpeed = 0.12f;
-    public const float SpinAngularSpeed = 0.5f;
-    public const float MinimumWindowDisplacement = 0.25f;
-    public const float StuckWindowDuration = 2f;
-
     public const float NewAreaReward = 0.02f;
-    public const float InitialSectorReward = 0.001f;
-    public const float MovingViewpointReward = 0.003f;
-    public const float StationarySpinPenalty = 0.002f;
-    public const float StuckPenalty = 0.08f;
-
-    public static bool ShouldPenalizeStationarySpin(
-        float timeWithoutBall,
-        float planarSpeed,
-        float angularSpeed)
-    {
-        return timeWithoutBall > InitialScanDuration &&
-               planarSpeed < MinimumMovingSpeed &&
-               angularSpeed >= SpinAngularSpeed;
-    }
-
-    public static int ViewpointKey(Vector2Int cell, int cameraSector)
-    {
-        unchecked
-        {
-            return (cell.x * 73856093) ^ (cell.y * 19349663) ^ cameraSector;
-        }
-    }
 }

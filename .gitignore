@@ -15,6 +15,14 @@ Backups/
 *.zip
 *.7z
 
+# Training outputs (event files, checkpoints, exported models, diagnostics)
+results/
+*.tar.gz
+diagnostic_log.csv
+
+# Reference material, not project code
+Manual/
+
 # IDE and OS files
 .vs/
 .vscode/

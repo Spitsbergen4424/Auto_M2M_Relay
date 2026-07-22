@@ -29,6 +29,11 @@ public sealed class VirtualSensors : MonoBehaviour
     public float UltrasonicNormalized { get; private set; } = 1f;
     public float LeftIR { get; private set; }
     public float RightIR { get; private set; }
+    // Normalized ray distance inside the IR range (1 = clear, 0 = contact).
+    // Simulator-only privileged data used by reward shaping; the observation the
+    // policy sees stays the binary LeftIR/RightIR, exactly like the real sensor.
+    public float LeftIRProximity { get; private set; } = 1f;
+    public float RightIRProximity { get; private set; } = 1f;
     public float GripperIR { get; private set; }
     public GameObject DetectedBall { get; private set; }
     public bool UseExternalReadings => useExternalReadings;
@@ -49,12 +54,21 @@ public sealed class VirtualSensors : MonoBehaviour
 
     public void SetExternalLeftIr(float value)
     {
-        if (useExternalReadings) LeftIR = Mathf.Clamp01(value);
+        if (useExternalReadings)
+        {
+            LeftIR = Mathf.Clamp01(value);
+            // The real IR is binary: an active reading maps to closest proximity.
+            LeftIRProximity = 1f - LeftIR;
+        }
     }
 
     public void SetExternalRightIr(float value)
     {
-        if (useExternalReadings) RightIR = Mathf.Clamp01(value);
+        if (useExternalReadings)
+        {
+            RightIR = Mathf.Clamp01(value);
+            RightIRProximity = 1f - RightIR;
+        }
     }
 
     public void SetExternalGripperIr(float value)
@@ -72,6 +86,8 @@ public sealed class VirtualSensors : MonoBehaviour
         UltrasonicNormalized = 0f;
         LeftIR = 1f;
         RightIR = 1f;
+        LeftIRProximity = 0f;
+        RightIRProximity = 0f;
         GripperIR = 0f;
         DetectedBall = null;
     }
@@ -99,8 +115,10 @@ public sealed class VirtualSensors : MonoBehaviour
         }
 
         UltrasonicNormalized = ReadUltrasonic();
-        LeftIR = ReadObstacleIR(leftIRPoint);
-        RightIR = ReadObstacleIR(rightIRPoint);
+        LeftIR = ReadObstacleIR(leftIRPoint, out float leftProximity);
+        LeftIRProximity = leftProximity;
+        RightIR = ReadObstacleIR(rightIRPoint, out float rightProximity);
+        RightIRProximity = rightProximity;
         GripperIR = ReadGripperIR();
     }
 
@@ -125,8 +143,9 @@ public sealed class VirtualSensors : MonoBehaviour
         return Mathf.Clamp01(nearest / ultrasonicRange);
     }
 
-    private float ReadObstacleIR(Transform origin)
+    private float ReadObstacleIR(Transform origin, out float normalizedProximity)
     {
+        normalizedProximity = 1f;
         if (origin == null)
         {
             return 0f;
@@ -134,6 +153,7 @@ public sealed class VirtualSensors : MonoBehaviour
 
         float distance = ClosestHit(origin.position, origin.forward, obstacleIRRange, true, out GameObject hit);
         DrawPhysicsRay(origin.position, origin.forward, obstacleIRRange, distance, hit, irRayColor);
+        normalizedProximity = obstacleIRRange > 0f ? Mathf.Clamp01(distance / obstacleIRRange) : 1f;
         return distance < obstacleIRRange ? 1f : 0f;
     }
 

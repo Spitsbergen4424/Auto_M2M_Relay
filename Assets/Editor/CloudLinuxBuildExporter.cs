@@ -24,7 +24,11 @@ public static class CloudLinuxBuildExporter
             scenes = new[] { ScenePath },
             locationPathName = ExecutablePath,
             target = BuildTarget.StandaloneLinux64,
-            subtarget = (int)StandaloneBuildSubtarget.Server,
+            // Regular Linux Player (not the Dedicated Server subtarget): headless
+            // training uses --no-graphics anyway, and this builds with the standard
+            // "Linux Build Support" module instead of requiring the separate
+            // "Linux Dedicated Server Build Support" one.
+            subtarget = (int)StandaloneBuildSubtarget.Player,
             options = BuildOptions.CleanBuildCache
         };
 
@@ -32,7 +36,7 @@ public static class CloudLinuxBuildExporter
         if (report.summary.result != BuildResult.Succeeded)
         {
             throw new InvalidOperationException(
-                $"Linux server build failed: {report.summary.result}, errors: {report.summary.totalErrors}");
+                $"Linux build failed: {report.summary.result}, errors: {report.summary.totalErrors}");
         }
 
         File.Copy("config.yaml", Path.Combine(OutputDirectory, "config.yaml"), true);

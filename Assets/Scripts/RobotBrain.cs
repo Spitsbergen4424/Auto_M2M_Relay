@@ -36,8 +36,7 @@ public sealed class RobotBrain : Agent
     private Quaternion ballStartRotation;
     private float cameraYaw;
     private float cameraTurnCommand;
-    private float previousDistance;
-    private Vector2 previousDriveAction;
+    private Vector3 previousAction;
     private ArenaObstacleRandomizer obstacleRandomizer;
     private bool initialized;
     private bool episodeRunning;
@@ -47,27 +46,36 @@ public sealed class RobotBrain : Agent
     private Vector3 previousTravelPosition;
     private int episodeCollisionCount;
     private readonly HashSet<Vector2Int> visitedCells = new HashSet<Vector2Int>();
-    private readonly HashSet<int> initialScanSectors = new HashSet<int>();
-    private readonly HashSet<int> movingViewpoints = new HashSet<int>();
     private bool ballEverSeen;
-    private bool ballWasVisible;
     private bool gripperReached;
     private float detectionTime;
     private float episodeDifficulty;
-    private float previousCameraError;
-    private float previousAlignment;
-    private bool hasVisualRewardBaseline;
-    private float lastBallVisibleTime;
-    private float searchWindowStartTime;
-    private Vector3 searchWindowStartPosition;
-    private int episodeStationarySpinSteps;
-    private int episodeStuckEvents;
+    private float previousNormalizedBallDistance;
+    private bool hasApproachBaseline;
+    private bool wasCloseToBall;
+    private float blindPhaseDeadline;
+    private float stuckWindowStartTime;
+    private Vector3 stuckWindowStartPosition;
+    private float stuckGasSum;
+    private float stuckSteerSum;
+    private int stuckSampleCount;
+    private bool episodeEndedStuck;
     private int episodeSearchCells;
-    private float previousObstacleClearance;
     private bool episodeDetourLayout;
-    private bool hasDetourPotential;
+    private bool hasDetourBaseline;
     private float previousDetourPotential;
-    private int highestDetourStage;
+    private bool usingSuccessGatedCurriculum;
+    private ArenaEpisodeSetup episodeSetup;
+    // Per-episode reward decomposition, reported as Robot/Reward/* so the balance
+    // of each component is visible in TensorBoard instead of being reconstructed
+    // from the cumulative total by hand.
+    private float episodeRewardApproach;
+    private float episodeRewardBonuses;
+    private float episodeRewardObstaclePenalty;
+    private float episodeRewardActionRatePenalty;
+    private float episodeRewardOtherPenalties;
+    private float episodeRewardTerminal;
+    private float episodeRewardDetour;
     private float evaluationBoundaryRadiusOverride;
 
     public void SetEvaluationBoundaryRadius(float radius)
@@ -86,7 +94,7 @@ public sealed class RobotBrain : Agent
 
         cameraYaw = 0f;
         cameraTurnCommand = 0f;
-        previousDriveAction = Vector2.zero;
+        previousAction = Vector3.zero;
         if (cameraPivot != null)
         {
             cameraPivot.localRotation = Quaternion.identity;
@@ -182,12 +190,32 @@ public sealed class RobotBrain : Agent
         if (targetBall != null)
         {
             targetBall.SetParent(null, true);
-            episodeDifficulty = Mathf.Clamp01(
-                Academy.Instance.EnvironmentParameters.GetWithDefault("arena_difficulty", 1f));
-            float halfAngle = Mathf.Lerp(25f, 180f, episodeDifficulty);
+            float trainerDifficulty = Academy.Instance.EnvironmentParameters.GetWithDefault(
+                "arena_difficulty", -1f);
+            usingSuccessGatedCurriculum = trainerDifficulty < 0f && Academy.Instance.IsCommunicatorOn;
+            if (trainerDifficulty >= 0f)
+            {
+                // An explicit yaml value (fixed or trainer-side curriculum) always wins.
+                episodeSetup = ArenaEpisodeSetup.FromScalar(trainerDifficulty);
+            }
+            else if (usingSuccessGatedCurriculum)
+            {
+                // Training without environment_parameters in the yaml: the staged
+                // ladder advances one axis at a time, and only after the policy
+                // both plateaus and clears the competence bar (SuccessGatedCurriculum).
+                episodeSetup = SuccessGatedCurriculum.CurrentSetup;
+            }
+            else
+            {
+                // Standalone Play without a trainer keeps the historical maximum.
+                episodeSetup = ArenaEpisodeSetup.FromScalar(1f);
+            }
+
+            episodeDifficulty = episodeSetup.NormalizedDifficulty;
+            float halfAngle = episodeSetup.SpawnHalfAngleDegrees;
             float angle = Random.Range(-halfAngle, halfAngle);
-            float minimumDistance = Mathf.Lerp(1.1f, 1.8f, episodeDifficulty);
-            float maximumDistance = Mathf.Lerp(2.0f, 4.1f, episodeDifficulty);
+            float minimumDistance = episodeSetup.MinSpawnDistance;
+            float maximumDistance = episodeSetup.MaxSpawnDistance;
             Vector3 spawnDirection = Quaternion.AngleAxis(angle, Vector3.up) * transform.right;
             Vector3 offset = spawnDirection.normalized * Random.Range(minimumDistance, maximumDistance);
             Vector3 spawnCenter = new Vector3(robotStartPosition.x, ballStartPosition.y, robotStartPosition.z);
@@ -205,15 +233,12 @@ public sealed class RobotBrain : Agent
             }
         }
 
-        obstacleRandomizer?.RandomizeLayout();
+        obstacleRandomizer?.RandomizeLayout(episodeSetup);
         episodeDetourLayout = obstacleRandomizer != null && obstacleRandomizer.HasDetourLayout;
-        hasDetourPotential = episodeDetourLayout &&
-                              obstacleRandomizer.TryGetDetourPathPotential(
-                                  transform.position, out previousDetourPotential);
-        highestDetourStage = 0;
+        hasDetourBaseline = false;
+        previousDetourPotential = 0f;
 
-        previousDistance = DistanceToBall();
-        previousDriveAction = Vector2.zero;
+        previousAction = Vector3.zero;
         if (episodeRunning)
         {
             ReportEpisode(false);
@@ -222,29 +247,28 @@ public sealed class RobotBrain : Agent
         episodeRunning = true;
         episodeStartTime = Time.time;
         episodeTravelDistance = 0f;
-        episodeInitialDistance = previousDistance;
+        episodeInitialDistance = DistanceToBall();
         previousTravelPosition = transform.position;
         episodeCollisionCount = 0;
         visitedCells.Clear();
-        initialScanSectors.Clear();
-        movingViewpoints.Clear();
         visitedCells.Add(Vector2Int.zero);
         ballEverSeen = false;
-        ballWasVisible = false;
         gripperReached = false;
         detectionTime = -1f;
-        previousCameraError = 0f;
-        previousAlignment = 0f;
-        hasVisualRewardBaseline = false;
-        lastBallVisibleTime = episodeStartTime;
-        searchWindowStartTime = episodeStartTime;
-        searchWindowStartPosition = transform.position;
-        episodeStationarySpinSteps = 0;
-        episodeStuckEvents = 0;
+        previousNormalizedBallDistance = 1f;
+        hasApproachBaseline = false;
+        wasCloseToBall = false;
+        blindPhaseDeadline = 0f;
+        ResetStuckWindow();
+        episodeEndedStuck = false;
         episodeSearchCells = 0;
-        previousObstacleClearance = virtualSensors != null
-            ? virtualSensors.UltrasonicNormalized
-            : 1f;
+        episodeRewardApproach = 0f;
+        episodeRewardBonuses = 0f;
+        episodeRewardObstaclePenalty = 0f;
+        episodeRewardActionRatePenalty = 0f;
+        episodeRewardOtherPenalties = 0f;
+        episodeRewardTerminal = 0f;
+        episodeRewardDetour = 0f;
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -317,7 +341,7 @@ public sealed class RobotBrain : Agent
             steer,
             gripperController != null && gripperController.HasBall,
             0,
-            false,
+            wasCloseToBall && Time.time <= blindPhaseDeadline,
             displacement.x,
             displacement.z,
             Mathf.Repeat(transform.eulerAngles.y, 360f) / 360f,
@@ -330,34 +354,78 @@ public sealed class RobotBrain : Agent
         return behavior != null && behavior.IsInHeuristicMode();
     }
 
+    // Every reward flows through here so each component lands in its named
+    // TensorBoard bucket. If Robot/Reward/Total ever drifts away from
+    // Environment/Cumulative Reward, some code path is calling AddReward directly.
+    private void AddTrackedReward(ref float bucket, float value)
+    {
+        bucket += value;
+        AddReward(value);
+    }
+
     private void CalculateRewards(float gas, float steer)
     {
-        float distance = DistanceToBall();
-        float distanceDelta = previousDistance - distance;
         bool visible = yoloCamera != null && yoloCamera.IsVisible;
+        bool blindPhaseActive = wasCloseToBall && Time.time <= blindPhaseDeadline;
 
-        // Ground-truth distance must not guide a blind robot. Progress becomes rewarding
-        // only after the camera actually sees the ball.
         if (visible)
         {
-            lastBallVisibleTime = Time.time;
-            searchWindowStartTime = Time.time;
-            searchWindowStartPosition = transform.position;
-            AddReward(distanceDelta * RewardTuning.VisibleDistanceProgress);
+            float ballDistance = yoloCamera.NormalizedDistance;
+
+            // Camera-space approach shaping: the multiplier rises from 2x to 6x as
+            // the ball nears, paying most for a precise final approach. It uses the
+            // same normalized-distance signal the real YOLO pipeline produces, and
+            // pays only on visual confirmation - ground truth never guides a blind
+            // robot. The baseline survives blind gaps, so driving away unseen and
+            // returning nets nothing while a genuine occlusion bypass keeps its
+            // earned progress.
+            if (hasApproachBaseline)
+            {
+                float approachDelta = previousNormalizedBallDistance - ballDistance;
+                AddTrackedReward(ref episodeRewardApproach,
+                    approachDelta * RewardTuning.ProximityMultiplier(ballDistance));
+            }
+
+            previousNormalizedBallDistance = ballDistance;
+            hasApproachBaseline = true;
+
             if (!ballEverSeen)
             {
                 ballEverSeen = true;
                 detectionTime = Time.time - episodeStartTime;
-                // Finding a ball after genuine blind exploration is the sparse event
-                // that proves a barrier was successfully bypassed. Reward it much more
-                // than an immediately visible spawn, without exposing hidden coordinates.
-                AddReward(detectionTime >= RewardTuning.DelayedDetectionSeconds
-                    ? RewardTuning.DelayedDetectionReward
-                    : RewardTuning.ImmediateDetectionReward);
-                if (episodeDetourLayout)
+                AddTrackedReward(ref episodeRewardBonuses, RewardTuning.FirstDetectionReward);
+            }
+
+            if (ballDistance < RewardTuning.CloseBallDistance)
+            {
+                // Remember the close encounter: when the ball drops under the
+                // bumper out of the camera frame, the blind-crawl window lets the
+                // robot finish the approach from memory without reward starvation.
+                wasCloseToBall = true;
+                blindPhaseDeadline = Time.time + RewardTuning.BlindPhaseSeconds;
+                if (gas > RewardTuning.SlowGasMin && gas < RewardTuning.SlowGasMax)
                 {
-                    AddReward(RewardTuning.DetourDiscoveryReward);
+                    AddTrackedReward(ref episodeRewardBonuses, RewardTuning.SlowApproachBonus);
                 }
+            }
+            else
+            {
+                wasCloseToBall = false;
+            }
+
+            // Centered-and-advancing only: an idle robot parked in front of the
+            // ball must not farm the alignment stream.
+            if (ballDistance < RewardTuning.AlignmentDistance &&
+                Mathf.Abs(yoloCamera.HorizontalOffset) < RewardTuning.AlignmentAngle &&
+                gas > RewardTuning.SlowGasMin)
+            {
+                AddTrackedReward(ref episodeRewardBonuses, RewardTuning.AlignmentBonus);
+            }
+
+            if (ballDistance < RewardTuning.NearBallSpeedDistance &&
+                Mathf.Abs(gas) > RewardTuning.NearBallSpeedGas)
+            {
+                AddTrackedReward(ref episodeRewardOtherPenalties, -RewardTuning.NearBallSpeedPenalty);
             }
         }
         else
@@ -369,130 +437,85 @@ public sealed class RobotBrain : Agent
             if (visitedCells.Add(cell))
             {
                 episodeSearchCells++;
-                AddReward(ActiveSearchRewardShaping.NewAreaReward);
+                AddTrackedReward(ref episodeRewardBonuses, ActiveSearchRewardShaping.NewAreaReward);
             }
 
-            if (hasDetourPotential && obstacleRandomizer != null &&
+            // Directed exploration around an occluding barrier. Only active when a
+            // barrier layout exists (final curriculum stages) and the ball is
+            // hidden, so stages without occlusion are untouched. Potential-based:
+            // moving toward the nearer free edge pays, backtracking refunds it.
+            if (episodeDetourLayout && obstacleRandomizer != null &&
                 obstacleRandomizer.TryGetDetourPathPotential(transform.position, out float detourPotential))
             {
-                float progress = Mathf.Clamp(
-                    previousDetourPotential - detourPotential,
-                    -RewardTuning.MaximumDetourProgressPerDecision,
-                    RewardTuning.MaximumDetourProgressPerDecision);
-                AddReward(progress * RewardTuning.DetourPathProgress);
+                if (hasDetourBaseline)
+                {
+                    float progress = Mathf.Clamp(
+                        previousDetourPotential - detourPotential,
+                        -RewardTuning.MaxDetourProgressPerStep,
+                        RewardTuning.MaxDetourProgressPerStep);
+                    AddTrackedReward(ref episodeRewardDetour, progress * RewardTuning.DetourPathProgress);
+                }
+
                 previousDetourPotential = detourPotential;
-
-                if (obstacleRandomizer.TryGetDetourStage(transform.position, out int detourStage) &&
-                    detourStage > highestDetourStage)
-                {
-                    AddReward((detourStage - highestDetourStage) * RewardTuning.DetourStageReward);
-                    highestDetourStage = detourStage;
-                }
+                hasDetourBaseline = true;
             }
 
-            float timeWithoutBall = Time.time - lastBallVisibleTime;
-            Vector3 planarVelocity = Vector3.ProjectOnPlane(body.linearVelocity, Vector3.up);
-            bool moving = planarVelocity.magnitude >= ActiveSearchRewardShaping.MinimumMovingSpeed;
-            bool spinning = body.angularVelocity.magnitude >= ActiveSearchRewardShaping.SpinAngularSpeed;
-            int cameraSector = yoloCamera != null ? yoloCamera.WorldViewSector : 0;
-
-            if (timeWithoutBall <= ActiveSearchRewardShaping.InitialScanDuration &&
-                initialScanSectors.Add(cameraSector))
+            if (blindPhaseActive &&
+                gas > RewardTuning.SlowGasMin && gas < RewardTuning.SlowGasMax)
             {
-                AddReward(ActiveSearchRewardShaping.InitialSectorReward);
+                AddTrackedReward(ref episodeRewardBonuses, RewardTuning.BlindCrawlBonus);
             }
 
-            // After the initial look-around, scanning is useful only while relocating.
-            // The cell/sector pair rewards new moving viewpoints without encouraging
-            // stop-and-scan behaviour in every small grid cell.
-            int viewpointKey = ActiveSearchRewardShaping.ViewpointKey(cell, cameraSector);
-            if (moving && movingViewpoints.Add(viewpointKey))
+            if (!blindPhaseActive)
             {
-                AddReward(ActiveSearchRewardShaping.MovingViewpointReward);
-            }
-
-            if (ActiveSearchRewardShaping.ShouldPenalizeStationarySpin(
-                    timeWithoutBall, planarVelocity.magnitude, body.angularVelocity.magnitude))
-            {
-                episodeStationarySpinSteps++;
-                AddReward(-ActiveSearchRewardShaping.StationarySpinPenalty);
-            }
-
-            if (Time.time - searchWindowStartTime >= ActiveSearchRewardShaping.StuckWindowDuration)
-            {
-                float displacement = Vector3.ProjectOnPlane(
-                    transform.position - searchWindowStartPosition, Vector3.up).magnitude;
-                if (timeWithoutBall > ActiveSearchRewardShaping.InitialScanDuration &&
-                    displacement < ActiveSearchRewardShaping.MinimumWindowDisplacement)
-                {
-                    episodeStuckEvents++;
-                    AddReward(-ActiveSearchRewardShaping.StuckPenalty);
-                }
-
-                searchWindowStartTime = Time.time;
-                searchWindowStartPosition = transform.position;
+                wasCloseToBall = false;
             }
         }
 
-        if (ballWasVisible && !visible)
-        {
-            AddReward(-RewardTuning.LostSightPenalty);
-        }
-        ballWasVisible = visible;
-
-        Vector2 action = new Vector2(gas, steer);
-        // Keep only a tiny smoothing cost. A larger value taught the robot to keep
-        // driving into an obstacle instead of making the sharp turn needed to escape.
-        AddReward(-Vector2.Distance(action, previousDriveAction) * RewardTuning.ActionChangePenalty);
-        previousDriveAction = action;
-
-        if (visible && targetBall != null)
-        {
-            Vector3 toBall = Vector3.ProjectOnPlane(targetBall.position - transform.position, Vector3.up);
-            if (toBall.sqrMagnitude > 0.0001f)
-            {
-                // The FBX nose points along local +X (transform.right).
-                float alignment = Mathf.Clamp01((Vector3.Dot(transform.right, toBall.normalized) + 1f) * 0.5f);
-                float cameraError = Mathf.Abs(yoloCamera.HorizontalOffset);
-                if (hasVisualRewardBaseline)
-                {
-                    AddReward(VisualRewardShaping.CalculateProgress(
-                        previousCameraError, cameraError, previousAlignment, alignment));
-                }
-
-                previousCameraError = cameraError;
-                previousAlignment = alignment;
-                hasVisualRewardBaseline = true;
-            }
-        }
-
+        // Obstacles are penalized purely through the sensors the physical robot
+        // has. Unity's collision event has no hardware counterpart, so contact
+        // stays a TensorBoard metric (see OnCollisionEnter).
+        float sonar = virtualSensors != null ? virtualSensors.UltrasonicNormalized : 1f;
+        bool sideIrActive = virtualSensors != null &&
+                            (virtualSensors.LeftIR >= 1f || virtualSensors.RightIR >= 1f);
         if (virtualSensors != null)
         {
-            float clearance = virtualSensors.UltrasonicNormalized;
-            float clearanceProgress = clearance - previousObstacleClearance;
-            bool obstacleNearby = clearance < RewardTuning.ObstacleClearanceThreshold ||
-                                  previousObstacleClearance < RewardTuning.ObstacleClearanceThreshold;
-            if (obstacleNearby)
-            {
-                // Potential-based shaping: approaching a barrier costs exactly what
-                // leaving it earns. It teaches recovery without rewarding oscillation.
-                AddReward(clearanceProgress * RewardTuning.ObstacleClearanceProgress);
-            }
+            AddTrackedReward(ref episodeRewardObstaclePenalty,
+                -RewardTuning.SonarProximityPenalty(sonar));
 
-            previousObstacleClearance = clearance;
-            AddReward(-(virtualSensors.LeftIR + virtualSensors.RightIR) * RewardTuning.SideIrPenalty);
-            if (clearance < RewardTuning.CriticalObstacleDistance)
-                AddReward(-RewardTuning.CriticalObstaclePenalty);
+            // Gradient over the worse of the two IR rays: detection at the native
+            // 15 cm stays free, the cost ramps up only inside 7.5 cm. The binary
+            // sideIrActive still legitimizes reversing below.
+            float sideIrProximity = Mathf.Min(
+                virtualSensors.LeftIRProximity, virtualSensors.RightIRProximity);
+            AddTrackedReward(ref episodeRewardObstaclePenalty,
+                -RewardTuning.SideIrProximityPenalty(sideIrProximity));
 
             if (!gripperReached && virtualSensors.GripperIR >= 1f)
             {
                 gripperReached = true;
-                AddReward(RewardTuning.GripperReachedReward);
+                AddTrackedReward(ref episodeRewardBonuses, RewardTuning.GripperReachedReward);
             }
         }
 
-        AddReward(-RewardTuning.DecisionStepPenalty);
-        previousDistance = distance;
+        // The rear has no sensors, so unjustified reversing escapes every
+        // proximity signal. Reversing stays free next to an obstacle and while
+        // recovering a just-lost close ball.
+        bool reverseJustified = sonar < RewardTuning.ReverseEscapeClearance ||
+                                sideIrActive || blindPhaseActive;
+        if (gas < RewardTuning.ReverseGasThreshold && !reverseJustified)
+        {
+            AddTrackedReward(ref episodeRewardOtherPenalties, -RewardTuning.ReversePenalty);
+        }
+
+        // Isaac-Lab-style quadratic action-rate cost, camera servo included:
+        // jerky command jumps wear out real motors and gears.
+        Vector3 action = new Vector3(gas, steer, cameraTurnCommand);
+        AddTrackedReward(ref episodeRewardActionRatePenalty,
+            -RewardTuning.ActionRatePenalty * (action - previousAction).sqrMagnitude);
+        previousAction = action;
+
+        AddTrackedReward(ref episodeRewardOtherPenalties, -RewardTuning.DecisionStepPenalty);
 
         if (gripperController != null && gripperController.HasBall)
         {
@@ -500,22 +523,86 @@ public sealed class RobotBrain : Agent
             // episode as soon as the capture succeeds.
             if (!IsManualControl())
             {
-                AddReward(successReward);
+                AddTrackedReward(ref episodeRewardTerminal, successReward);
                 SuccessfulEpisodeCount++;
                 ReportEpisode(true);
                 EndEpisode();
             }
+
+            return;
         }
-        else if ((transform.position - robotStartPosition).sqrMagnitude >
-                 Mathf.Pow(evaluationBoundaryRadiusOverride > 0f
-                     ? evaluationBoundaryRadiusOverride
-                     : arenaRadius, 2f) ||
-                 transform.position.y < robotStartPosition.y - 1f)
+
+        if ((transform.position - robotStartPosition).sqrMagnitude >
+            Mathf.Pow(evaluationBoundaryRadiusOverride > 0f
+                ? evaluationBoundaryRadiusOverride
+                : arenaRadius, 2f) ||
+            transform.position.y < robotStartPosition.y - 1f)
         {
-            AddReward(-2f);
+            AddTrackedReward(ref episodeRewardTerminal, -RewardTuning.OutOfArenaPenalty);
+            ReportEpisode(false);
+            EndEpisode();
+            return;
+        }
+
+        if (IsManualControl())
+        {
+            return;
+        }
+
+        if (UpdateStuckDetection(gas, steer))
+        {
+            episodeEndedStuck = true;
+            AddTrackedReward(ref episodeRewardTerminal, -RewardTuning.StuckPenalty);
+            ReportEpisode(false);
+            EndEpisode();
+            return;
+        }
+
+        if (Time.time - episodeStartTime > RewardTuning.EpisodeTimeLimitSeconds)
+        {
+            AddTrackedReward(ref episodeRewardTerminal, -RewardTuning.TimeoutPenalty);
             ReportEpisode(false);
             EndEpisode();
         }
+    }
+
+    // Commanding movement for a whole window while barely displacing (wall push,
+    // spinning, tight circling) ends the episode - one decisive terminal instead
+    // of the per-step spin/stuck micro-penalties of the previous reward system.
+    // "Commanding" is judged on the SIGNED average of the window, so zero-mean
+    // exploration dither does not read as a command (see RewardTuning notes).
+    private bool UpdateStuckDetection(float gas, float steer)
+    {
+        stuckGasSum += gas;
+        stuckSteerSum += steer;
+        stuckSampleCount++;
+
+        if (Time.time - stuckWindowStartTime < RewardTuning.StuckWindowSeconds)
+        {
+            return false;
+        }
+
+        float averageGas = stuckGasSum / stuckSampleCount;
+        float averageSteer = stuckSteerSum / stuckSampleCount;
+        bool commandingMovement =
+            Mathf.Abs(averageGas) > RewardTuning.StuckCommandThreshold ||
+            Mathf.Abs(averageSteer) > RewardTuning.StuckCommandThreshold;
+        float displacement = Vector3.ProjectOnPlane(
+            transform.position - stuckWindowStartPosition, Vector3.up).magnitude;
+        float maxSpeed = trackController != null ? trackController.MaxLinearSpeed : 0.25f;
+        float minimumProgress = RewardTuning.StuckMinProgressFraction *
+                                maxSpeed * RewardTuning.StuckWindowSeconds;
+        ResetStuckWindow();
+        return commandingMovement && displacement < minimumProgress;
+    }
+
+    private void ResetStuckWindow()
+    {
+        stuckWindowStartTime = Time.time;
+        stuckWindowStartPosition = transform.position;
+        stuckGasSum = 0f;
+        stuckSteerSum = 0f;
+        stuckSampleCount = 0;
     }
 
     private float DistanceToBall()
@@ -598,8 +685,25 @@ public sealed class RobotBrain : Agent
         stats.Add("Robot/DetectionSeconds", detectionTime >= 0f ? detectionTime : Time.time - episodeStartTime);
         stats.Add("Robot/ArenaDifficulty", episodeDifficulty, StatAggregationMethod.MostRecent);
         stats.Add("Robot/SearchCells", episodeSearchCells);
-        stats.Add("Robot/StationarySpinSteps", episodeStationarySpinSteps);
-        stats.Add("Robot/StuckEvents", episodeStuckEvents);
+        stats.Add("Robot/StuckRate", episodeEndedStuck ? 1f : 0f);
+        if (usingSuccessGatedCurriculum)
+        {
+            SuccessGatedCurriculum.ReportEpisode(success, episodeCollisionCount);
+        }
+
+        // Reward decomposition. Total must track Environment/Cumulative Reward;
+        // a divergence means some code path bypassed AddTrackedReward.
+        stats.Add("Robot/Reward/Total",
+            episodeRewardApproach + episodeRewardBonuses + episodeRewardObstaclePenalty +
+            episodeRewardActionRatePenalty + episodeRewardOtherPenalties + episodeRewardTerminal +
+            episodeRewardDetour);
+        stats.Add("Robot/Reward/Approach", episodeRewardApproach);
+        stats.Add("Robot/Reward/Bonuses", episodeRewardBonuses);
+        stats.Add("Robot/Reward/ObstaclePenalty", episodeRewardObstaclePenalty);
+        stats.Add("Robot/Reward/ActionRatePenalty", episodeRewardActionRatePenalty);
+        stats.Add("Robot/Reward/OtherPenalties", episodeRewardOtherPenalties);
+        stats.Add("Robot/Reward/Terminal", episodeRewardTerminal);
+        stats.Add("Robot/Reward/Detour", episodeRewardDetour);
         if (episodeDetourLayout)
         {
             stats.Add("Robot/DetourSuccessRate", success ? 1f : 0f);
@@ -611,8 +715,10 @@ public sealed class RobotBrain : Agent
     {
         if (IsObstacleOrWall(collision.collider.transform))
         {
+            // Metric only. Obstacle avoidance is trained through the sonar/IR
+            // penalties - the channels the physical robot actually perceives;
+            // it has no collision event to learn from.
             episodeCollisionCount++;
-            AddReward(-RewardTuning.CollisionPenalty);
         }
     }
 
